@@ -111,16 +111,17 @@ export function Header({
               key={`header-slot-${idx}-${slotId}`}
               onPress={cfg.onPress || undefined}
               disabled={!cfg.onPress}
-              className={`min-h-[52px] min-w-0 flex-1 flex-row items-center justify-center gap-2 rounded-md bg-pos-panel px-1 ${
-                cfg.onPress ? 'active:bg-green-500' : 'opacity-80'
-              }`}
+              className={`min-h-[52px] min-w-0 flex-1 flex-row items-center justify-center gap-2 rounded-md bg-pos-panel px-1 ${cfg.onPress ? 'active:bg-green-500' : 'opacity-80'
+                }`}
             >
               {showRoomAndTableLines ? (
-                <View className="flex-1 items-center justify-center py-1 min-w-0">
+                <View className="flex-1 flex-row items-center justify-center py-1 min-w-0 gap-1">
                   {renderIcon(cfg.icon)}
-                  <Text className={`${headerLabelClass} truncate w-full`}>{String(selectedRoomName).trim()}</Text>
-                  <View className="h-0.5 bg-white w-[80%] my-0.5" />
-                  <Text className={`${headerLabelClass} truncate w-full`}>{String(selectedTableLabel).trim()}</Text>
+                  <View className="flex w-[70%] justify-center items-center">
+                    <Text className={`${headerLabelClass} truncate`}>{String(selectedRoomName).trim()}</Text>
+                    <View className="h-0.5 bg-white my-0.5 w-[80%]" />
+                    <Text className={`${headerLabelClass} truncate`}>{String(selectedTableLabel).trim()}</Text>
+                  </View>
                 </View>
               ) : (
                 <View className="min-w-0 flex-1 flex-row items-center justify-center gap-1">

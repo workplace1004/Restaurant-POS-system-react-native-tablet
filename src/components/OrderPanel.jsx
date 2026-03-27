@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Modal, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, Modal, TextInput, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -59,6 +59,7 @@ const compactBtnText = 'text-[10px]';
 
 export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, onStatusChange, onCreateOrder, onRemoveAllOrders, tables, showSubtotalView = false, subtotalBreaks = [], onPaymentCompleted, selectedTable = null, currentUser = null, currentTime = '', onOpenTables, quantityInput = '', setQuantityInput, showInWaitingButton = false, showInPlanningButton = true, onOpenInPlanning, onOpenInWaiting, onSaveInWaitingAndReset, focusedOrderId = null, focusedOrderInitialItemCount = 0 }) {
   const { t } = useLanguage();
+  const { width: winW, height: winH } = useWindowDimensions();
   const tr = (key, fallback) => {
     const translated = t(key);
     return translated === key ? fallback : translated;
@@ -89,6 +90,13 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
   const [showSettlementSubtotalModal, setShowSettlementSubtotalModal] = useState(false);
   const [settlementModalType, setSettlementModalType] = useState('subtotal');
   const [pendingSplitCheckout, setPendingSplitCheckout] = useState(null);
+  const deleteModalWidth = Math.max(360, Math.min(980, Math.floor((winW || 1024) * 0.88)));
+  const deleteModalTitleSize = Math.max(20, Math.min(34, Math.floor((winW || 1024) * 0.028)));
+  const deleteModalButtonTextSize = Math.max(16, Math.min(26, Math.floor((winW || 1024) * 0.02)));
+  const deleteModalMaxHeight = Math.max(220, Math.floor((winH || 700) * 0.6));
+  const settlementOptionsWidth = Math.max(420, Math.min(1100, Math.floor((winW || 1024) * 0.9)));
+  const settlementOptionBtnH = Math.max(56, Math.min(86, Math.floor((winH || 700) * 0.095)));
+  const settlementOptionTextSize = Math.max(20, Math.min(36, Math.floor((winW || 1024) * 0.026)));
   const [subtotalLineGroups, setSubtotalLineGroups] = useState([]);
   const [subtotalSelectedLeftIds, setSubtotalSelectedLeftIds] = useState([]);
   const [subtotalSelectedRightIds, setSubtotalSelectedRightIds] = useState([]);
@@ -1062,7 +1070,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                     const savedCashierName = savedMeta?.cashierName || cashierName;
                     const savedTime = formatSavedOrderTime(savedMeta?.savedAt, savedOrder?.createdAt);
                     return (
-                      <View className="flex items-center justify-around py-0.5">
+                      <View className="w-full flex-row items-center justify-around py-0.5">
                         <Text className={`${ticketTextSemi} opacity-90`}>{savedCashierName}</Text>
                         <Text className={`${ticketTextSemi} opacity-90`}>{savedTime}</Text>
                       </View>
@@ -1111,7 +1119,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                         </Pressable>
                       ))}
                       <View className="px-1.5 pt-0.5">
-                        <View className="flex items-center justify-around py-0.5">
+                        <View className="w-full flex-row items-center justify-around py-0.5 border-t border-pos-bg/40">
                           <Text className={`${ticketTextSemi} opacity-90`}>{metaUserName}</Text>
                           <Text className={`${ticketTextSemi} opacity-90`}>{metaTime}</Text>
                         </View>
@@ -1267,18 +1275,18 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
 
       {hasSelectedTable ? (
         showSettlementActions ? (
-          <View className="flex gap-2 py-1 min-h-[59px]">
+          <View className="w-full flex-row items-stretch gap-2 py-1 min-h-[59px]">
             <Pressable
-              className="flex-1 py-3 px-2 bg-pos-surface border-none rounded-md text-pos-text active:bg-green-500"
+              className="min-w-0 flex-1 py-3 px-2 bg-pos-surface border-none rounded-md text-pos-text active:bg-green-500 items-center justify-center"
               onPress={() => settlementOrder && onStatusChange?.(settlementOrder.id, 'in_planning')}
             >
-              <Text className="text-pos-text text-center text-[10px]">{t('interimAccount')}</Text>
+              <Text className="text-pos-text text-center text-[10px]" numberOfLines={2} ellipsizeMode="tail">{t('interimAccount')}</Text>
             </Pressable>
             <Pressable
-              className="flex-1 py-3 px-2 bg-pos-surface border-none rounded-md text-pos-text active:bg-green-500"
+              className="min-w-0 flex-1 py-3 px-2 bg-pos-surface border-none rounded-md text-pos-text active:bg-green-500 items-center justify-center"
               onPress={() => setShowFinalSettlementModal(true)}
             >
-              <Text className="text-pos-text text-center text-[10px]">{t('finalSettlement')}</Text>
+              <Text className="text-pos-text text-center text-[10px]" numberOfLines={2} ellipsizeMode="tail">{t('finalSettlement')}</Text>
             </Pressable>
           </View>
         ) : (
@@ -1587,27 +1595,30 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
         </View>
       </Modal>
 
-      <Modal visible={showFinalSettlementModal} transparent animationType="fade" onRequestClose={() => setShowFinalSettlementModal(false)}>
+      <Modal visible={showFinalSettlementModal} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowFinalSettlementModal(false)}>
         <View className="flex-1 items-center justify-center bg-black/50 p-4">
           <View
-            className="bg-gray-100 rounded-xl shadow-2xl max-w-3xl w-full px-8 py-10"
+            className="bg-gray-100 rounded-xl shadow-2xl w-full px-6 py-8"
+            style={{ width: settlementOptionsWidth }}
           >
             <Text id="final-settlement-options-title" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden" }}>
               {t('finalSettlementOptions')}
             </Text>
-            <View className="flex flex-row items-start gap-10">
+            <View className="flex flex-row items-start gap-4">
               <Pressable
-                className="min-w-0 flex-1 h-14 rounded border-none bg-gray-200 text-xl font-semibold text-gray-700 active:bg-green-500"
+                className="min-w-0 flex-1 rounded border-none bg-gray-200 text-gray-700 active:bg-green-500 items-center justify-center"
+                style={{ minHeight: settlementOptionBtnH }}
                 onPress={() => {
                   setShowFinalSettlementModal(false);
                   openPayDifferentlyModal();
                 }}
               >
-                <Text className="text-center text-xl font-semibold text-gray-700">{t('finalPayment')}</Text>
+                <Text className="text-center font-semibold text-gray-700" style={{ fontSize: settlementOptionTextSize }}>{t('finalPayment')}</Text>
               </Pressable>
-              <View className="min-w-0 flex-1 flex flex-col gap-6">
+              <View className="min-w-0 flex-1 flex flex-col gap-4">
                 <Pressable
-                  className="h-14 bg-gray-200 border-none rounded text-xl font-semibold text-gray-700 active:bg-green-500"
+                  className="bg-gray-200 border-none rounded text-gray-700 active:bg-green-500 items-center justify-center"
+                  style={{ minHeight: settlementOptionBtnH }}
                   onPress={() => {
                     setShowFinalSettlementModal(false);
                     setShowSettlementSubtotalModal(true);
@@ -1617,17 +1628,19 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                     setSubtotalSelectedRightIds([]);
                   }}
                 >
-                  <Text className="text-gray-700 text-center text-xl font-semibold">{t('subtotal')}</Text>
+                  <Text className="text-gray-700 text-center font-semibold" style={{ fontSize: settlementOptionTextSize }}>{t('subtotal')}</Text>
                 </Pressable>
                 <Pressable
-                  className="h-14 bg-gray-200 border-none rounded text-xl font-semibold text-gray-700 active:bg-green-500"
+                  className="bg-gray-200 border-none rounded text-gray-700 active:bg-green-500 items-center justify-center"
+                  style={{ minHeight: settlementOptionBtnH }}
                   onPress={() => setShowFinalSettlementModal(false)}
                 >
-                  <Text className="text-gray-700 text-center text-xl font-semibold">{t('cancel')}</Text>
+                  <Text className="text-gray-700 text-center font-semibold" style={{ fontSize: settlementOptionTextSize }}>{t('cancel')}</Text>
                 </Pressable>
               </View>
               <Pressable
-                className="min-w-0 flex-1 h-14 rounded border-none bg-gray-200 text-xl font-semibold text-gray-700 active:bg-green-500"
+                className="min-w-0 flex-1 rounded border-none bg-gray-200 text-gray-700 active:bg-green-500 items-center justify-center"
+                style={{ minHeight: settlementOptionBtnH }}
                 onPress={() => {
                   setShowFinalSettlementModal(false);
                   setShowSettlementSubtotalModal(true);
@@ -1637,7 +1650,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                   setSubtotalSelectedRightIds([]);
                 }}
               >
-                <Text className="text-center text-xl font-semibold text-gray-700">{t('splitBill')}</Text>
+                <Text className="text-center font-semibold text-gray-700" style={{ fontSize: settlementOptionTextSize }}>{t('splitBill')}</Text>
               </Pressable>
             </View>
           </View>
@@ -1977,23 +1990,24 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
         }}
       />
 
-      <Modal visible={showDeleteAllModal} transparent animationType="fade" onRequestClose={() => setShowDeleteAllModal(false)}>
+      <Modal visible={showDeleteAllModal} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowDeleteAllModal(false)}>
         <View className="flex-1 items-center justify-center bg-black/50 p-4">
           <View
-            className="bg-pos-panel rounded-lg shadow-xl px-16 py-8 max-w-2xl w-full mx-4 border border-pos-border"
+            className="bg-pos-panel rounded-lg shadow-xl px-8 py-8 w-full border border-pos-border"
+            style={{ width: deleteModalWidth, maxHeight: deleteModalMaxHeight }}
           >
-            <Text className="text-xl mb-10 font-semibold text-center w-full text-pos-text">
+            <Text className="mb-8 font-semibold text-center w-full text-pos-text" style={{ fontSize: deleteModalTitleSize }}>
                 {t('clearListConfirm')}
             </Text>
-            <View className="w-full flex-row flex-nowrap items-stretch gap-[100px]">
+            <View className="w-full flex-row flex-nowrap items-stretch gap-4">
               <Pressable
-                className="min-w-0 flex-1 items-center justify-center rounded bg-pos-surface py-2 px-3 active:bg-green-500"
+                className="min-w-0 flex-1 items-center justify-center rounded bg-pos-surface py-3 px-3 active:bg-green-500"
                 onPress={() => setShowDeleteAllModal(false)}
               >
-                <Text className="text-center text-md text-pos-text">{t('cancel')}</Text>
+                <Text className="text-center text-pos-text" style={{ fontSize: deleteModalButtonTextSize }}>{t('cancel')}</Text>
               </Pressable>
               <Pressable
-                className="min-w-0 flex-1 items-center justify-center rounded bg-pos-danger py-2 px-3 active:bg-rose-500"
+                className="min-w-0 flex-1 items-center justify-center rounded bg-pos-danger py-3 px-3 active:bg-rose-500"
                 onPress={async () => {
                   if (isSavedTableOrder) {
                     setShowDeleteAllModal(false);
@@ -2013,7 +2027,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                   setSelectedItemIds([]);
                 }}
               >
-                <Text className="text-white text-center text-md">{t('ok')}</Text>
+                <Text className="text-white text-center" style={{ fontSize: deleteModalButtonTextSize }}>{t('ok')}</Text>
               </Pressable>
             </View>
           </View>
