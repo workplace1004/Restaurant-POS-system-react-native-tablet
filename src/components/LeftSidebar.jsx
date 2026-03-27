@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useLanguage } from '../contexts/LanguageContext';
 
 /** One arrow tap scrolls ~⅓ of the visible list (clamped) for smooth, readable steps. */
@@ -58,11 +58,6 @@ export function LeftSidebar({
   }, []);
 
   const onControl = () => {
-    Alert.alert(
-      t('control', 'Control'),
-      'The full Control panel is available on the main POS browser. Handheld supports the order screen only.',
-      [{ text: t('ok', 'OK') }]
-    );
     onControlClick?.();
   };
 

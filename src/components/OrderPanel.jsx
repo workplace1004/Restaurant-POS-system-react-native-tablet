@@ -16,6 +16,9 @@ const formatSubtotalPrice = (n) => `\u20AC ${Number(n).toFixed(2).replace('.', '
 const roundCurrency = (n) => Math.round((Number(n) || 0) * 100) / 100;
 const formatPaymentAmount = (n) => `\u20AC${roundCurrency(n).toFixed(2)}`;
 const TABLE_SAVED_ORDERS_API = '/api/settings/table-saved-orders';
+const CASH_IMAGE = require('../../assets/image/cash.png');
+const PAYWORLD_IMAGE = require('../../assets/image/payworld.png');
+const CARD_IMAGE = require('../../assets/image/card.svg');
 
 /** RN defaults flexDirection to column — flex-row keeps label + price on one line */
 const ticketLineRow = 'flex flex-row w-full items-center justify-between';
@@ -123,27 +126,27 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
   /** Saved batches: show oldest first (API `orders` list is usually newest-first). */
   const savedOrdersForSelectedTable = hasSelectedTable
     ? (() => {
-        const list = Array.from(
-          new Map(
-            (orders || [])
-              .filter(
-                (o) =>
-                  o?.id &&
-                  o?.status === 'open' &&
-                  String(o?.tableId ?? '') === String(selectedTable?.id ?? '') &&
-                  savedTableOrderIds.includes(o?.id)
-              )
-              .map((o) => [o.id, o])
-          ).values()
-        );
-        const batchTime = (o) => {
-          const meta = savedOrderMetaById.get(o.id);
-          const savedMs = meta?.savedAt ? new Date(meta.savedAt).getTime() : NaN;
-          const createdMs = new Date(o?.createdAt || 0).getTime();
-          return Number.isFinite(savedMs) && savedMs > 0 ? savedMs : createdMs;
-        };
-        return list.sort((a, b) => batchTime(a) - batchTime(b));
-      })()
+      const list = Array.from(
+        new Map(
+          (orders || [])
+            .filter(
+              (o) =>
+                o?.id &&
+                o?.status === 'open' &&
+                String(o?.tableId ?? '') === String(selectedTable?.id ?? '') &&
+                savedTableOrderIds.includes(o?.id)
+            )
+            .map((o) => [o.id, o])
+        ).values()
+      );
+      const batchTime = (o) => {
+        const meta = savedOrderMetaById.get(o.id);
+        const savedMs = meta?.savedAt ? new Date(meta.savedAt).getTime() : NaN;
+        const createdMs = new Date(o?.createdAt || 0).getTime();
+        return Number.isFinite(savedMs) && savedMs > 0 ? savedMs : createdMs;
+      };
+      return list.sort((a, b) => batchTime(a) - batchTime(b));
+    })()
     : [];
   const settlementOrder = savedOrdersForSelectedTable[savedOrdersForSelectedTable.length - 1] || null;
   const showSettlementActions = hasSelectedTable && (!!settlementOrder) && (!hasOrderItems || isSavedTableOrder);
@@ -1183,73 +1186,69 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
         )}
       </View>
       <View className="w-full min-w-0 flex-row items-center gap-1 border-t border-black/10 px-1">
-          <Pressable
-            disabled={!hasSelection}
-            className={`min-w-0 flex-1 py-1 items-center justify-center rounded border-none p-0 ${
-              !hasSelection || isSavedTableOrder
-                ? 'bg-black/10 opacity-50 cursor-not-allowed'
-                : 'bg-black/10'
+        <Pressable
+          disabled={!hasSelection}
+          className={`min-w-0 flex-1 py-1 items-center justify-center rounded border-none p-0 ${!hasSelection || isSavedTableOrder
+            ? 'bg-black/10 opacity-50 cursor-not-allowed'
+            : 'bg-black/10'
             }`}
-            onPress={() => {
-              if (isSavedTableOrder) return;
-              if (order && selectedItems.length > 0) {
-                selectedItems.forEach((item) => {
-                  onUpdateItemQuantity?.(order.id, item.id, item.quantity + 1);
-                });
-              }
-            }}
-          >
-            <Text className="text-xl font-bold text-white">+</Text>
-          </Pressable>
-          <Pressable
-            disabled={!canDecreaseAll || isSavedTableOrder}
-            className={`min-w-0 flex-1 py-1 items-center justify-center rounded border-none p-0 ${
-              !canDecreaseAll || isSavedTableOrder
-                ? 'bg-black/10 opacity-50 cursor-not-allowed'
-                : 'bg-black/10'
+          onPress={() => {
+            if (isSavedTableOrder) return;
+            if (order && selectedItems.length > 0) {
+              selectedItems.forEach((item) => {
+                onUpdateItemQuantity?.(order.id, item.id, item.quantity + 1);
+              });
+            }
+          }}
+        >
+          <Text className="text-xl font-bold text-white">+</Text>
+        </Pressable>
+        <Pressable
+          disabled={!canDecreaseAll || isSavedTableOrder}
+          className={`min-w-0 flex-1 py-1 items-center justify-center rounded border-none p-0 ${!canDecreaseAll || isSavedTableOrder
+            ? 'bg-black/10 opacity-50 cursor-not-allowed'
+            : 'bg-black/10'
             }`}
-            onPress={() => {
-              if (isSavedTableOrder) return;
-              if (order && canDecreaseAll) {
-                selectedItems.forEach((item) => {
-                  if (item.quantity > 1) {
-                    onUpdateItemQuantity?.(order.id, item.id, item.quantity - 1);
-                  }
-                });
-              }
-            }}
-          >
-            <Text className="text-2xl font-bold text-white">{'\u2212'}</Text>
-          </Pressable>
-          <Pressable
-            className={`min-w-0 flex-1 items-center justify-center rounded border-none py-1 ${
-              !hasSelection || isSavedTableOrder
-                ? 'bg-black/10 opacity-50 cursor-not-allowed'
-                : 'bg-black/10'
+          onPress={() => {
+            if (isSavedTableOrder) return;
+            if (order && canDecreaseAll) {
+              selectedItems.forEach((item) => {
+                if (item.quantity > 1) {
+                  onUpdateItemQuantity?.(order.id, item.id, item.quantity - 1);
+                }
+              });
+            }
+          }}
+        >
+          <Text className="text-2xl font-bold text-white">{'\u2212'}</Text>
+        </Pressable>
+        <Pressable
+          className={`min-w-0 flex-1 items-center justify-center rounded border-none py-1 ${!hasSelection || isSavedTableOrder
+            ? 'bg-black/10 opacity-50 cursor-not-allowed'
+            : 'bg-black/10'
             }`}
-            onPress={() => {
-              if (isSavedTableOrder) return;
-              if (order && selectedItemIds.length > 0) {
-                selectedItemIds.forEach((id) => onRemoveItem(order.id, id));
-                setSelectedItemIds([]);
-              }
-            }}
-            disabled={!hasSelection || isSavedTableOrder}
-            accessibilityLabel={t('remove')}
-          >
-            <MaterialCommunityIcons name="delete-outline" size={20} color="#ffffff" />
-          </Pressable>
-          <Pressable
-            disabled={isSavedTableOrder}
-            className={`min-w-0 flex-1 items-center justify-center rounded border-none py-1 ${
-              isSavedTableOrder ? 'bg-black/10 opacity-50 cursor-not-allowed' : 'bg-black/10'
+          onPress={() => {
+            if (isSavedTableOrder) return;
+            if (order && selectedItemIds.length > 0) {
+              selectedItemIds.forEach((id) => onRemoveItem(order.id, id));
+              setSelectedItemIds([]);
+            }
+          }}
+          disabled={!hasSelection || isSavedTableOrder}
+          accessibilityLabel={t('remove')}
+        >
+          <MaterialCommunityIcons name="delete-outline" size={20} color="#ffffff" />
+        </Pressable>
+        <Pressable
+          disabled={isSavedTableOrder}
+          className={`min-w-0 flex-1 items-center justify-center rounded border-none py-1 ${isSavedTableOrder ? 'bg-black/10 opacity-50 cursor-not-allowed' : 'bg-black/10'
             }`}
-            onPress={() => setShowDeleteAllModal(true)}
-            accessibilityLabel={t('clear')}
-          >
-            <MaterialCommunityIcons name="delete-sweep" size={20} color="#ffffff" />
-          </Pressable>
-        </View>
+          onPress={() => setShowDeleteAllModal(true)}
+          accessibilityLabel={t('clear')}
+        >
+          <MaterialCommunityIcons name="delete-sweep" size={20} color="#ffffff" />
+        </Pressable>
+      </View>
 
       <View className="flex w-full flex-row items-center gap-2 px-1 py-0.5">
         <Text className="min-w-0 flex-1 text-[11px] font-semibold leading-tight text-pos-text" numberOfLines={1} ellipsizeMode="tail">
@@ -1333,51 +1332,51 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
             </Pressable>
           ) : null}
           <View className="w-full min-w-0 flex-row flex-nowrap items-stretch gap-0.5">
-          <Pressable
-            disabled={!order?.id || !hasOrderItems || inWaitingButtonDisabled}
-            className={`min-w-0 flex-1 items-center justify-center rounded-md border-none px-0.5 py-1.5 ${order?.id && hasOrderItems && !inWaitingButtonDisabled ? 'bg-pos-surface text-pos-text' : 'bg-pos-surface text-gray-400 cursor-not-allowed opacity-70'}`}
-            onPress={async () => {
-              if (!order?.id || !hasOrderItems || inWaitingButtonDisabled) return;
-              if (isViewedFromInWaiting) {
-                const existingName = order?.customer ? (order.customer.companyName || order.customer.name) : null;
-                const newBoundaries = [...batchBoundaries, items.length];
-                const newMeta = [
-                  ...batchMeta,
-                  { userId: currentUser?.id, userName: currentUser?.name || currentUser?.label || cashierName, createdAt: new Date().toISOString() }
-                ];
-                await onStatusChange?.(order.id, 'in_waiting', {
-                  customerName: existingName || undefined,
-                  userId: currentUser?.id,
-                  itemBatchBoundaries: newBoundaries,
-                  itemBatchMeta: newMeta
-                });
-                await onSaveInWaitingAndReset?.();
-              } else {
-                setShowInWaitingNameModal(true);
-              }
-            }}
-          >
-            <Text className={`text-center leading-tight ${compactBtnText}`} numberOfLines={2}>
-              {tr('orderPanel.inWaiting', 'In waiting')}
-            </Text>
-          </Pressable>
-          <Pressable
-            disabled={payableTotalForPaymentModal <= 0.009 && !(isViewedFromInWaiting && hasOrderItems) && !(hasOrderItems && order?.id)}
-            className={`min-w-0 flex-1 items-center justify-center rounded-md border-none px-0.5 py-1.5 ${payableTotalForPaymentModal <= 0.009 && !(isViewedFromInWaiting && hasOrderItems) && !(hasOrderItems && order?.id)
-              ? 'bg-green-600/50 text-gray-400 cursor-not-allowed opacity-70'
-              : 'bg-green-600 text-white'
-              }`}
-            onPress={() => openPayDifferentlyModal()}
-          >
-            <Text className={`text-center leading-tight ${compactBtnText} font-semibold text-white`} numberOfLines={2}>
-              {t('payDifferently')}
-            </Text>
-          </Pressable>
-          <Pressable
-            className="shrink-0 items-center justify-center rounded-md border-none bg-[#f0961c]/90 px-3 py-2"
-          >
-            <Text className={`text-center ${compactBtnText} font-semibold text-pos-bg`}>€</Text>
-          </Pressable>
+            <Pressable
+              disabled={!order?.id || !hasOrderItems || inWaitingButtonDisabled}
+              className={`min-w-0 flex-1 items-center justify-center rounded-md border-none px-0.5 py-1.5 ${order?.id && hasOrderItems && !inWaitingButtonDisabled ? 'bg-pos-surface text-pos-text' : 'bg-pos-surface text-gray-400 cursor-not-allowed opacity-70'}`}
+              onPress={async () => {
+                if (!order?.id || !hasOrderItems || inWaitingButtonDisabled) return;
+                if (isViewedFromInWaiting) {
+                  const existingName = order?.customer ? (order.customer.companyName || order.customer.name) : null;
+                  const newBoundaries = [...batchBoundaries, items.length];
+                  const newMeta = [
+                    ...batchMeta,
+                    { userId: currentUser?.id, userName: currentUser?.name || currentUser?.label || cashierName, createdAt: new Date().toISOString() }
+                  ];
+                  await onStatusChange?.(order.id, 'in_waiting', {
+                    customerName: existingName || undefined,
+                    userId: currentUser?.id,
+                    itemBatchBoundaries: newBoundaries,
+                    itemBatchMeta: newMeta
+                  });
+                  await onSaveInWaitingAndReset?.();
+                } else {
+                  setShowInWaitingNameModal(true);
+                }
+              }}
+            >
+              <Text className={`text-center leading-tight ${compactBtnText}`} numberOfLines={2}>
+                {tr('orderPanel.inWaiting', 'In waiting')}
+              </Text>
+            </Pressable>
+            <Pressable
+              disabled={payableTotalForPaymentModal <= 0.009 && !(isViewedFromInWaiting && hasOrderItems) && !(hasOrderItems && order?.id)}
+              className={`min-w-0 flex-1 items-center justify-center rounded-md border-none px-0.5 py-1.5 ${payableTotalForPaymentModal <= 0.009 && !(isViewedFromInWaiting && hasOrderItems) && !(hasOrderItems && order?.id)
+                ? 'bg-green-600/50 text-gray-400 cursor-not-allowed opacity-70'
+                : 'bg-green-600 text-white'
+                }`}
+              onPress={() => openPayDifferentlyModal()}
+            >
+              <Text className={`text-center leading-tight ${compactBtnText} font-semibold text-white`} numberOfLines={2}>
+                {t('payDifferently')}
+              </Text>
+            </Pressable>
+            <Pressable
+              className="shrink-0 items-center justify-center rounded-md border-none bg-[#f0961c]/90 px-3 py-2"
+            >
+              <Text className={`text-center ${compactBtnText} font-semibold text-pos-bg`}>€</Text>
+            </Pressable>
           </View>
         </View>
       )}
@@ -1398,121 +1397,126 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
             <ScrollView className="w-full" contentContainerStyle={{ paddingBottom: 8 }}>
               {/* Left: Total + payment methods */}
               <View className="flex items-center justify-center">
-                <View className="p-6 min-w-[56%] w-full flex flex-col">
-                <Text className="text-lg font-semibold mb-3 w-full text-center text-gray-800">
-                  {t('total')}: €{payModalTargetTotal.toFixed(2)}
-                </Text>
-                <View className="mb-4 w-full flex flex-row flex-wrap items-start justify-center gap-4">
-                  {paymentMethodsLoading ? (
-                    <View className="w-full py-6 text-center text-sm text-gray-600">
-                      {tr('orderPanel.loadingPaymentMethods', 'Loading payment methods...')}
+                <View className="p-6 pb-0 w-full flex flex-col">
+                  <View className="w-full flex flex-row mb-3 items-center justify-around gap-4">
+                    <Text className="text-lg font-semibold text-center text-gray-800">
+                      {t('total')}: €{payModalTargetTotal.toFixed(2)}
+                    </Text>
+                    <View className="flex-row items-center justify-center gap-4">
+                      <Text className="text-center text-lg font-semibold shrink-0">{`${t('assigned')}: €${payModalTotalAssigned.toFixed(2)}`}</Text>
+                      <TextInput
+                        editable={!payModalSplitComplete}
+                        className="w-full max-w-[100px] py-2 px-3 bg-gray-200 rounded-lg text-base text-gray-800"
+                        value={payModalKeypadInput}
+                        onChangeText={(text) => setPayModalKeypadInput(String(text || '').replace(',', '.').replace(/[^0-9.]/g, ''))}
+                        keyboardType="decimal-pad"
+                        accessibilityLabel={t('amountKeypad')}
+                      />
                     </View>
-                  ) : activePaymentMethods.length === 0 ? (
-                    <View className="w-full max-w-lg px-4 py-6 text-center text-sm text-amber-900">
-                      {tr(
-                        'orderPanel.noPaymentMethods',
-                        'No active payment methods. Configure them under Control â†’ Payment types.',
-                      )}
-                    </View>
-                  ) : (
-                    activePaymentMethods.map((m) => {
-                      const amt = Number(paymentAmounts[m.id]) || 0;
-                      const isHighlighted = selectedPayment === m.id || amt > 0;
-                      const integ = m.integration || 'generic';
-                      return (
-                        <View key={m.id} className="mb-1 flex flex-col items-center gap-1.5" style={{ width: '23%' }}>
-                          <Pressable
-                            disabled={payModalSplitComplete || payModalWouldExceedTotal}
-                            onPress={() => handlePaymentMethodClick(m)}
-                            className={`rounded-lg border-2 p-2 disabled:opacity-50 disabled:cursor-not-allowed ${isHighlighted ? 'bg-green-500 border-green-700' : 'bg-white border-gray-300'
-                              }`}
-                            accessibilityLabel={m.name}
-                          >
-                            {integ === 'manual_cash' ? (
-                              <Text className="flex items-center justify-center w-[105px] h-[70px] text-4xl font-bold text-amber-600 bg-amber-50/80 rounded">€</Text>
+                  </View>
+                  <View className="mb-4 w-full flex flex-row flex-wrap items-start justify-center gap-4">
+                    {paymentMethodsLoading ? (
+                      <View className="w-full py-6 text-center text-sm text-gray-600">
+                      <Text className="text-center text-sm text-gray-600">
+                        {tr('orderPanel.loadingPaymentMethods', 'Loading payment methods...')}
+                      </Text>
+                      </View>
+                    ) : activePaymentMethods.length === 0 ? (
+                      <View className="w-full max-w-lg px-4 py-6 text-center text-sm text-amber-900">
+                      <Text className="text-center text-sm text-amber-900">
+                        {tr(
+                          'orderPanel.noPaymentMethods',
+                          'No active payment methods. Configure them under Control â†’ Payment types.',
+                        )}
+                      </Text>
+                      </View>
+                    ) : (
+                      activePaymentMethods.map((m) => {
+                        const amt = Number(paymentAmounts[m.id]) || 0;
+                        const isHighlighted = selectedPayment === m.id || amt > 0;
+                        const integ = m.integration || 'generic';
+                        return (
+                          <View key={m.id} className="mb-1 flex flex-col items-center gap-1.5" style={{ width: '23%' }}>
+                            <Pressable
+                              disabled={payModalSplitComplete || payModalWouldExceedTotal}
+                              onPress={() => handlePaymentMethodClick(m)}
+                              className={`rounded-lg border-2 p-2 disabled:opacity-50 disabled:cursor-not-allowed ${isHighlighted ? 'bg-green-500 border-green-700' : 'bg-white border-gray-300'
+                                }`}
+                              accessibilityLabel={m.name}
+                            >
+                              {integ === 'manual_cash' ? (
+                              <View className="w-[105px] h-[70px] items-center justify-center bg-amber-50/80 rounded">
+                                <Text className="text-4xl font-bold text-amber-600">€</Text>
+                              </View>
                             ) : integ === 'cashmatic' ? (
-                              <ExpoImage source={{ uri: '/cash.png' }} style={{ width: 105, height: 70 }} contentFit="contain" />
+                              <ExpoImage source={CASH_IMAGE} style={{ width: 105, height: 70 }} contentFit="contain" />
                             ) : integ === 'payworld' ? (
-                              <ExpoImage source={{ uri: '/payworld.png' }} style={{ width: 105, height: 70 }} contentFit="contain" />
+                              <ExpoImage source={PAYWORLD_IMAGE} style={{ width: 105, height: 70 }} contentFit="contain" />
                             ) : integ === 'generic' ? (
-                              <ExpoImage source={{ uri: '/card.svg' }} style={{ width: 105, height: 70 }} contentFit="contain" />
-                            ) : (
-                              <Text className="flex items-center justify-center w-[105px] min-h-[70px] px-2 py-3 text-base font-semibold text-center text-blue-900 bg-blue-50/80 rounded leading-tight">
-                                {m.name}
-                              </Text>
-                            )}
-                          </Pressable>
-                          <View className="text-sm font-semibold tabular-nums text-center max-w-[140px]" >
-                            <Text className="block text-xs font-normal text-gray-600 mb-0.5 truncate">{m.name}</Text>
-                            <Text>{formatPaymentAmount(amt)}</Text>
+                              <ExpoImage source={CARD_IMAGE} style={{ width: 105, height: 70 }} contentFit="contain" />
+                              ) : (
+                                <Text className="flex items-center justify-center w-[105px] min-h-[70px] px-2 py-3 text-base font-semibold text-center text-blue-900 bg-blue-50/80 rounded leading-tight">
+                                  {m.name}
+                                </Text>
+                              )}
+                            </Pressable>
+                            <View className="text-sm font-semibold tabular-nums text-center max-w-[140px]" >
+                              <Text className="block text-xs font-normal text-gray-600 mb-0.5 truncate">{m.name}</Text>
+                              <Text>{formatPaymentAmount(amt)}</Text>
+                            </View>
                           </View>
-                        </View>
-                      );
-                    })
-                  )}
-                </View>
-                </View>
-                {/* Assigned + manual amount input on one line */}
-                <View className="w-full p-6 pt-0">
-                <View className="w-full flex-row items-center justify-center gap-4">
-                  <TextInput
-                    editable={!payModalSplitComplete}
-                    className="w-full max-w-[320px] py-2 px-3 bg-gray-200 rounded-lg text-base text-gray-800"
-                    value={payModalKeypadInput}
-                    onChangeText={(text) => setPayModalKeypadInput(String(text || '').replace(',', '.').replace(/[^0-9.]/g, ''))}
-                    keyboardType="decimal-pad"
-                    accessibilityLabel={t('amountKeypad')}
-                  />
-                  <Text className="text-center text-lg font-semibold shrink-0">{`${t('assigned')}: €${payModalTotalAssigned.toFixed(2)}`}</Text>
-                </View>
+                        );
+                      })
+                    )}
+                  </View>
                 </View>
                 <View className="w-full flex flex-row items-center justify-center gap-4 p-6 pt-0">
-                <Pressable
-                  disabled={payModalSplitComplete}
-                  className={`py-2 px-4 min-w-[180px] rounded-lg text-sm font-medium ${payModalSplitComplete ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-800'}`}
-                  onPress={handlePayHalfAmount}
-                >
-                  <Text className="text-center text-sm font-medium text-gray-800">{t('halfAmount')}</Text>
-                </Pressable>
-                <Pressable
-                  disabled={payModalSplitComplete}
-                  className={`py-2 px-4 min-w-[180px] rounded-lg text-sm font-medium ${payModalSplitComplete ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-800'}`}
-                  onPress={handlePayRemaining}
-                >
-                  <Text className="text-center text-sm font-medium text-gray-800">{t('remainingAmount')}</Text>
-                </Pressable>
-                <Pressable
-                  className="py-2 px-4 bg-gray-300 min-w-[180px] rounded-lg text-gray-800 text-sm font-medium"
-                  onPress={handlePayReset}
-                >
-                  <Text className="text-center text-sm font-medium text-gray-800">{t('reset')}</Text>
-                </Pressable>
+                  <Pressable
+                    disabled={payModalSplitComplete}
+                  className={`py-2 px-4 min-w-[180px] rounded-lg text-sm font-medium ${payModalSplitComplete ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-black'}`}
+                    onPress={handlePayHalfAmount}
+                  >
+                  <Text className={`text-center text-sm font-medium ${payModalSplitComplete ? 'text-gray-500' : 'text-black'}`}>{t('halfAmount')}</Text>
+                  </Pressable>
+                  <Pressable
+                    disabled={payModalSplitComplete}
+                  className={`py-2 px-4 min-w-[180px] rounded-lg text-sm font-medium ${payModalSplitComplete ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-black'}`}
+                    onPress={handlePayRemaining}
+                  >
+                  <Text className={`text-center text-sm font-medium ${payModalSplitComplete ? 'text-gray-500' : 'text-black'}`}>{t('remainingAmount')}</Text>
+                  </Pressable>
+                  <Pressable
+                  className="py-2 px-4 bg-gray-300 min-w-[180px] rounded-lg text-black text-sm font-medium"
+                    onPress={handlePayReset}
+                  >
+                  <Text className="text-center text-sm font-medium text-black">{t('reset')}</Text>
+                  </Pressable>
                 </View>
               </View>
-              <View className="flex justify-around px-6 gap-4 w-full pt-4 pb-6">
-              <Pressable
-                className="w-[140px] py-2 px-4 rounded-lg text-sm font-medium bg-gray-300 text-gray-800"
-                onPress={handleCancelPayDifferentlyModal}
-              >
-                <Text className="text-center text-sm font-medium text-gray-800">{t('cancel')}</Text>
-              </Pressable>
-              <Pressable
-                disabled={
-                  Math.abs(payModalTotalAssigned - payModalTargetTotal) > 0.009 ||
-                  payConfirmLoading ||
-                  paymentMethodsLoading ||
-                  activePaymentMethods.length === 0
-                }
-                className={`w-[140px] py-2 px-4 rounded-lg text-sm font-medium ${Math.abs(payModalTotalAssigned - payModalTargetTotal) > 0.009 || payConfirmLoading || paymentMethodsLoading || activePaymentMethods.length === 0
-                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-gray-300 text-gray-800'
-                  }`}
-                onPress={handleConfirmPayment}
-              >
-                <Text className="text-center text-sm font-medium text-gray-800">
-                  {payConfirmLoading ? t('processing') : t('toConfirm')}
-                </Text>
-              </Pressable>
+              <View className="w-full flex-row items-center justify-center px-6 gap-4 pt-4 pb-6">
+                <Pressable
+                className="min-w-[180px] py-2 px-4 rounded-lg text-sm font-medium bg-gray-300 text-black"
+                  onPress={handleCancelPayDifferentlyModal}
+                >
+                <Text className="text-center text-sm font-medium text-black">{t('cancel')}</Text>
+                </Pressable>
+                <Pressable
+                  disabled={
+                    Math.abs(payModalTotalAssigned - payModalTargetTotal) > 0.009 ||
+                    payConfirmLoading ||
+                    paymentMethodsLoading ||
+                    activePaymentMethods.length === 0
+                  }
+                className={`min-w-[180px] py-2 px-4 rounded-lg text-sm font-medium ${Math.abs(payModalTotalAssigned - payModalTargetTotal) > 0.009 || payConfirmLoading || paymentMethodsLoading || activePaymentMethods.length === 0
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-gray-300 text-black'
+                    }`}
+                  onPress={handleConfirmPayment}
+                >
+                <Text className={`text-center text-sm font-medium ${Math.abs(payModalTotalAssigned - payModalTargetTotal) > 0.009 || payConfirmLoading || paymentMethodsLoading || activePaymentMethods.length === 0 ? 'text-gray-500' : 'text-black'}`}>
+                    {payConfirmLoading ? t('processing') : t('toConfirm')}
+                  </Text>
+                </Pressable>
               </View>
             </ScrollView>
           </View>
@@ -1627,6 +1631,8 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
         visible={showSettlementSubtotalModal}
         transparent
         animationType="fade"
+        statusBarTranslucent
+        presentationStyle="overFullScreen"
         onRequestClose={() => {
           setShowSettlementSubtotalModal(false);
           setSettlementModalType('subtotal');
@@ -1635,22 +1641,22 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
           setSubtotalSelectedRightIds([]);
         }}
       >
-        <View className="flex-1 items-center justify-center bg-black/50 p-4">
+        <View className="flex-1 items-center justify-center bg-black/50 p-4" style={{ width: '100%', height: '100%' }}>
           <View
             className="bg-pos-panel rounded-xl shadow-2xl w-full max-w-[1400px] h-[86vh] p-4 border border-pos-border flex flex-col"
           >
-            <View id="settlement-subtotal-title" className="flex items-center justify-between text-xl font-semibold text-pos-text px-2 pb-1 border-b border-pos-border">
-              <Text>{selectedTable?.name || t('table')}</Text>
-              <Text>€ {payableTotal.toFixed(2)}</Text>
+            <View id="settlement-subtotal-title" className="flex flex-row items-center justify-between text-xl font-semibold text-white px-2 pb-1 border-b border-pos-border">
+              <Text className="text-white">{selectedTable?.name || t('table')}</Text>
+              <Text className="text-white">€ {payableTotal.toFixed(2)}</Text>
             </View>
 
-            <View className="flex-1 min-h-0 flex gap-5">
-              <View className="flex flex-col h-full w-full">
+            <View className="flex-1 min-h-0 flex-row gap-5">
+              <View className="min-w-0 flex-1 flex-col h-full">
                 <View className="flex-1 border border-pos-border overflow-auto bg-pos-bg">
                   {settlementSubtotalLeftLines.map((line) => (
                     <Pressable
                       key={line.id}
-                      className={`w-full text-left px-4 py-2 border-b border-pos-border/40 text-sm text-pos-text flex items-center justify-between ${subtotalSelectedLeftIds.includes(line.id) ? 'bg-pos-surface-hover' : ''
+                      className={`w-full flex-row text-left px-4 py-2 border-b border-pos-border/40 text-[10px] text-pos-text flex flex-row items-center justify-between ${subtotalSelectedLeftIds.includes(line.id) ? 'bg-pos-surface-hover' : ''
                         }`}
                       onPress={() => {
                         setSubtotalSelectedLeftIds((prev) =>
@@ -1659,8 +1665,8 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                         setSubtotalSelectedRightIds([]);
                       }}
                     >
-                      <Text>- {line.label}</Text>
-                      <Text>€ {line.amount.toFixed(2)}</Text>
+                      <Text className="text-white text-[10px]">{line.label}</Text>
+                      <Text className="text-white text-[10px]">€ {line.amount.toFixed(2)}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -1676,12 +1682,12 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                       setSubtotalSelectedRightIds([]);
                     }}
                   >
-                    <Text className="text-pos-text text-center text-md">{t('all')}</Text>
+                    <Text className="text-pos-text text-center text-[10px]">{t('all')}</Text>
                   </Pressable>
                 </View>
               </View>
 
-              <View className="w-16 flex flex-col items-center justify-between py-16 text-pos-text mb-20">
+              <View className="w-10 flex flex-col items-center justify-between py-16 text-pos-text mb-20">
                 <Pressable
                   className="text-6xl leading-none disabled:opacity-40 disabled:cursor-not-allowed"
                   disabled={subtotalSelectedLeftIds.length === 0}
@@ -1699,10 +1705,10 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                     setSubtotalSelectedRightIds([]);
                   }}
                 >
-                  <Text className="text-6xl text-pos-text">→</Text>
+                  <Text className="text-3xl text-pos-text">→</Text>
                 </Pressable>
                 <Pressable
-                  className="text-6xl leading-none disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="text-md leading-none disabled:opacity-40 disabled:cursor-not-allowed"
                   disabled={subtotalSelectedRightIds.length === 0}
                   onPress={() => {
                     if (subtotalSelectedRightIds.length === 0) return;
@@ -1718,11 +1724,11 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                     setSubtotalSelectedLeftIds([]);
                   }}
                 >
-                  <Text className="text-6xl text-pos-text">←</Text>
+                  <Text className="text-3xl text-pos-text">←</Text>
                 </Pressable>
               </View>
 
-              <View className="flex flex-col h-full w-full">
+              <View className="min-w-0 flex-1 flex-col h-full">
                 <View className="flex-1 border border-pos-border bg-pos-bg flex flex-col">
                   <ScrollView ref={splitRightPanelScrollRef} className="flex-1" onScroll={(e) => { splitPanelScrollYRef.current = e.nativeEvent.contentOffset.y; }} scrollEventThrottle={16}>
                     {settlementSubtotalRightGroups.map((group) => (
@@ -1733,13 +1739,13 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                           : ''
                           }`}
                       >
-                        <Text className="text-center text-lg font-semibold text-pos-text">
+                        <Text className="text-center text-md font-semibold text-white">
                           {group.label}
                         </Text>
                         {group.lines.map((line) => (
                           <Pressable
                             key={line.id}
-                            className={`w-full text-left px-2 py-1 text-sm text-pos-text flex items-center justify-between ${subtotalSelectedRightIds.includes(line.id) ? 'bg-pos-surface-hover' : ''
+                            className={`w-full text-left px-2 py-1 text-[10px] text-pos-text flex flex-row items-center justify-between ${subtotalSelectedRightIds.includes(line.id) ? 'bg-pos-surface-hover' : ''
                               }`}
                             onPress={() => {
                               setSubtotalSelectedRightIds((prev) =>
@@ -1748,23 +1754,23 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                               setSubtotalSelectedLeftIds([]);
                             }}
                           >
-                            <Text>- {line.label}</Text>
-                            <Text>€ {line.amount.toFixed(2)}</Text>
+                            <Text className="text-white text-[10px]">{line.label}</Text>
+                            <Text className="text-white text-[10px]">€ {line.amount.toFixed(2)}</Text>
                           </Pressable>
                         ))}
-                        <Text className="text-center text-md font-semibold text-pos-text">
+                        <Text className="text-center text-[10px] font-semibold text-white">
                           € {group.total.toFixed(2)}
                         </Text>
                       </View>
                     ))}
                   </ScrollView>
-                  <View className="py-1 flex items-center justify-around gap-5">
+                  <View className="py-1 flex flex-row items-center justify-around gap-5">
                     <Pressable
-                      className="w-10 h-10 rounded bg-pos-surface text-pos-text text-xl leading-none"
+                      className="w-8 h-8 rounded bg-pos-surface text-pos-text text-xl leading-none"
                       onPress={() => scrollSplitRightPanel(-1)}
                       accessibilityLabel={t('scrollUp')}
                     >
-                      <Text className="text-pos-text text-xl">↑</Text>
+                      <Text className="text-pos-text text-center text-md">↑</Text>
                     </Pressable>
                     <Pressable
                       className="min-w-[100px] py-2 px-6 rounded bg-pos-surface text-pos-text text-md"
@@ -1774,20 +1780,20 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                         setSubtotalSelectedRightIds([]);
                       }}
                     >
-                      <Text className="text-pos-text text-center text-md">{t('again')}</Text>
+                      <Text className="text-pos-text text-center text-[10px]">{t('again')}</Text>
                     </Pressable>
                     <Pressable
-                      className="w-10 h-10 rounded bg-pos-surface text-pos-text text-xl leading-none"
+                      className="w-8 h-8 rounded bg-pos-surface text-pos-text text-xl leading-none"
                       onPress={() => scrollSplitRightPanel(1)}
                       accessibilityLabel={t('scrollDown')}
                     >
-                      <Text className="text-pos-text text-xl">↓</Text>
+                      <Text className="text-pos-text text-center text-md">↓</Text>
                     </Pressable>
                   </View>
                 </View>
-                <View className="pt-4 flex items-center justify-center gap-12">
+                <View className="pt-4 flex flex-row items-center justify-center gap-2">
                   <Pressable
-                    className="min-w-[100px] py-1 px-6 rounded bg-pos-surface text-pos-text text-md"
+                    className="min-w-[80px] max-w-[80px] py-1 px-6 rounded bg-pos-surface text-pos-text text-md"
                     onPress={() => {
                       setShowSettlementSubtotalModal(false);
                       setSettlementModalType('subtotal');
@@ -1796,13 +1802,13 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                       setSubtotalSelectedRightIds([]);
                     }}
                   >
-                    <Text className="text-pos-text text-center text-md">{t('cancel')}</Text>
+                    <Text className="text-pos-text text-center text-[10px]">{t('cancel')}</Text>
                   </Pressable>
                   {settlementModalType === 'splitBill' ? (
                     <>
                       <Pressable
                         disabled={!hasSplitBillSelection}
-                        className={`min-w-[150px] py-1 px-6 rounded text-md ${!hasSplitBillSelection
+                        className={`min-w-[100px] max-w-[100px] py-1 px-6 rounded text-md ${!hasSplitBillSelection
                           ? 'bg-pos-surface text-pos-text opacity-50 cursor-not-allowed'
                           : 'bg-pos-surface text-pos-text'
                           }`}
@@ -1817,11 +1823,11 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                           openPayDifferentlyModal(splitSelectedTotal);
                         }}
                       >
-                        <Text className="text-pos-text text-center text-md">{t('checkoutAndReturn')}</Text>
+                        <Text className="text-pos-text text-center text-[10px]">{t('checkoutAndReturn')}</Text>
                       </Pressable>
                       <Pressable
                         disabled={!hasSplitBillSelection}
-                        className={`min-w-[170px] py-1 px-6 rounded text-md ${!hasSplitBillSelection
+                        className={`min-w-[150px] max-w-[150px] py-1 px-6 rounded text-md ${!hasSplitBillSelection
                           ? 'bg-pos-surface text-pos-text opacity-50 cursor-not-allowed'
                           : 'bg-pos-surface text-pos-text'
                           }`}
@@ -1836,7 +1842,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                           openPayDifferentlyModal(splitSelectedTotal);
                         }}
                       >
-                        <Text className="text-pos-text text-center text-md">{t('checkoutAndContinueSplit')}</Text>
+                        <Text className="text-pos-text text-center text-[10px]">{t('checkoutAndContinueSplit')}</Text>
                       </Pressable>
                     </>
                   ) : (
@@ -1853,7 +1859,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                         openPayDifferentlyModal();
                       }}
                     >
-                      <Text className="text-pos-text text-center text-md">{t('checkout')}</Text>
+                      <Text className="text-pos-text text-center text-[10px]">{t('checkout')}</Text>
                     </Pressable>
                   )}
                 </View>
@@ -1864,8 +1870,15 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
         </View>
       </Modal>
 
-      <Modal visible={!!paymentSuccessMessage} transparent animationType="fade" onRequestClose={() => setPaymentSuccessMessage('')}>
-        <View className="flex-1 items-center justify-center bg-black/50 p-4">
+      <Modal
+        visible={!!paymentSuccessMessage}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        presentationStyle="overFullScreen"
+        onRequestClose={() => setPaymentSuccessMessage('')}
+      >
+        <View className="flex-1 items-center justify-center bg-black/50 p-4" style={{ width: '100%', height: '100%' }}>
           <View
             className="bg-pos-panel rounded-lg shadow-xl px-10 py-8 max-w-3xl w-full mx-4 border border-pos-border"
           >
@@ -1873,12 +1886,12 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
               {t('paymentSuccessfulTitle')}
             </Text>
             <Text className="text-2xl text-pos-text text-center mb-8">{paymentSuccessMessage}</Text>
-            <View className="flex justify-center">
+            <View className="flex items-center justify-center">
               <Pressable
-                className="w-[200px] py-4 bg-green-600 text-white rounded text-2xl"
+                className="w-[150px] py-2 bg-green-600 text-white rounded text-xl"
                 onPress={() => setPaymentSuccessMessage('')}
               >
-                <Text className="text-white text-center text-2xl">{t('ok')}</Text>
+                <Text className="text-white text-center text-xl">{t('ok')}</Text>
               </Pressable>
             </View>
           </View>
@@ -1909,7 +1922,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
             style={{ width: deleteModalWidth, maxHeight: deleteModalMaxHeight }}
           >
             <Text className="mb-8 font-semibold text-center w-full text-pos-text" style={{ fontSize: deleteModalTitleSize }}>
-                {t('clearListConfirm')}
+              {t('clearListConfirm')}
             </Text>
             <View className="w-full flex-row flex-nowrap items-stretch gap-4">
               <Pressable

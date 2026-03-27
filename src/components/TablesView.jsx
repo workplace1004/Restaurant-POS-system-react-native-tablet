@@ -164,10 +164,7 @@ export function TablesView({
               const id = matchedTable?.id != null ? String(matchedTable.id) : layoutTable.id;
               const tableNumber = String(layoutTable?.name ?? currentRoom?.name ?? id).replace(/^Table\s*/i, '') || String(idx + 1);
               const hasOpenOrders = matchedTable && Array.isArray(matchedTable?.orders) && matchedTable.orders.length > 0;
-              const lastPaidAt = Number(lastPaidAtByTableId?.[id]) || 0;
-              const wasPaidRecently =
-                !hasOpenOrders && lastPaidAt > 0 && Date.now() - lastPaidAt <= TABLE_PAID_HIGHLIGHT_WINDOW_MS;
-              const bg = hasOpenOrders ? 'bg-rose-500' : wasPaidRecently ? 'bg-green-500' : 'bg-pos-panel';
+              const bg = hasOpenOrders ? 'bg-rose-500' : 'bg-green-500';
               return (
                 <Pressable
                   key={layoutTable.id || id}
@@ -203,13 +200,10 @@ export function TablesView({
               const id = String(tb.id);
               const tableNumber = String(tb?.name ?? id).replace(/^Table\s*/i, '') || id;
               const hasOpenOrders = Array.isArray(tb?.orders) && tb.orders.length > 0;
-              const lastPaidAt = Number(lastPaidAtByTableId?.[id]) || 0;
-              const wasPaidRecently =
-                !hasOpenOrders && lastPaidAt > 0 && Date.now() - lastPaidAt <= TABLE_PAID_HIGHLIGHT_WINDOW_MS;
               return (
                 <Pressable
                   key={id}
-                  className="items-center justify-center rounded-lg overflow-hidden bg-pos-panel border-2 border-pos-border"
+                  className={`items-center justify-center rounded-lg overflow-hidden border-2 border-pos-border ${hasOpenOrders ? 'bg-rose-500' : 'bg-green-500'}`}
                   style={{ width: fallbackTileSize, height: fallbackTileSize }}
                   onPress={() =>
                     handleSelectAndClose(tb, {
@@ -219,8 +213,6 @@ export function TablesView({
                   }
                 >
                   <ExpoImage source={{ uri: '/table.png' }} style={{ width: fallbackImageSize, height: fallbackImageSize }} contentFit="contain" />
-                  {hasOpenOrders ? <View className="absolute inset-0 bg-rose-500/50" /> : null}
-                  {!hasOpenOrders && wasPaidRecently ? <View className="absolute inset-0 bg-green-500/50" /> : null}
                   <Text className="absolute text-white font-bold" style={{ fontSize: fallbackLabelSize }}>{tableNumber}</Text>
                 </Pressable>
               );

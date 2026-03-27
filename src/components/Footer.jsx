@@ -118,43 +118,6 @@ export function Footer({
 
   return (
     <View className="w-full shrink-0 items-center bg-pos-bg px-2 pb-2">
-      {/** flex-wrap + min-w-% wrapped rows; one even row = flex-nowrap + flex-1 min-w-0 */}
-      <View className="relative w-full flex-row flex-nowrap gap-1 text-sm">
-        {footerRowSlotIds.map((slotId, index) => {
-          if (!slotId) {
-            return <View key={`footer-empty-${index}`} className="min-w-0 flex-1" />;
-          }
-          const isCustomers = slotId === 'klanten';
-          const isHistory = slotId === 'historiek';
-          const isSubtotal = slotId === 'subtotaal';
-          const disabled = isSubtotal ? subtotalButtonDisabled : false;
-          const active =
-            (isCustomers && customersActive) || (isSubtotal && showSubtotalView) || (isHistory && false);
-          const compactWhite = FOOTER_ROW_COMPACT_WHITE_IDS.has(slotId);
-          const labelClassName = compactWhite
-            ? 'px-0.5 text-center text-[8px] leading-tight text-white'
-            : `px-0.5 text-center ${footerLabelClass}`;
-          return (
-            <Pressable
-              key={`footer-slot-${slotId}-${index}`}
-              disabled={disabled}
-              className={`min-w-0 flex-1 overflow-hidden border-none py-2 ${
-                disabled
-                  ? 'rounded-none bg-[#4ab3ff]/40 opacity-60'
-                  : active
-                    ? 'rounded-none bg-pos-surface'
-                    : `rounded-sm ${functionButtonBaseClass}`
-              }`}
-              onPress={() => handleFooterButtonClick(slotId)}
-            >
-              <Text className={labelClassName} numberOfLines={2} ellipsizeMode="tail">
-                {getLabel(slotId)}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
       <Modal
         visible={showMoreMenu}
         transparent

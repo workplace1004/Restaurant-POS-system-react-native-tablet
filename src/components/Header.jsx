@@ -5,7 +5,6 @@ import { useLanguage } from '../contexts/LanguageContext';
 
 const ICONS = {
   tables: 'table-chair',
-  weborders: 'cart-outline',
   'in-wacht': 'clock-outline',
   'geplande-orders': 'calendar-month-outline',
   reservaties: 'calendar-month-outline',
@@ -13,10 +12,8 @@ const ICONS = {
 };
 
 export function Header({
-  webordersCount,
   inWaitingCount = 0,
   onOpenTables,
-  onOpenWeborders,
   onOpenInWaiting,
   selectedTable,
   selectedTableLabel,
@@ -57,12 +54,7 @@ export function Header({
           isTablesSlot: true
         };
       case 'weborders':
-        return {
-          label: t('control.functionButton.weborders'),
-          icon: ICONS.weborders,
-          onPress: onOpenWeborders,
-          isTablesSlot: false
-        };
+        return null;
       case 'in-wacht':
         return {
           label: `${inWaitingCount} ${t('control.functionButton.inWaiting')}`,

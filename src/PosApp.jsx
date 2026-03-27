@@ -10,10 +10,10 @@ import { ProductArea } from './components/ProductArea';
 import { Footer } from './components/Footer';
 import { OrderPanel } from './components/OrderPanel';
 import { TablesView } from './components/TablesView';
+import { ControlView } from './components/ControlView';
 import { LoginScreen } from './components/LoginScreen';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import {
-  WebordersModalRN,
   InWaitingModalRN,
   HistoryModalRN,
   CustomersModalRN
@@ -22,7 +22,7 @@ import {
 const API = '/api';
 const USER_STORAGE_KEY = 'pos-user';
 const VIEW_STORAGE_KEY = 'pos-view';
-const VALID_VIEWS = ['pos', 'tables'];
+const VALID_VIEWS = ['pos', 'tables', 'control'];
 
 /** Tablet POS shell: fixed column ratios (no width-based “phone vs tablet” switching). */
 const posLayout = StyleSheet.create({
@@ -96,8 +96,6 @@ export default function PosApp() {
   }, [socket]);
 
   const [time, setTime] = useState(() => formatPosClock());
-  const [showOrdersModal, setShowOrdersModal] = useState(false);
-  const [ordersModalTab, setOrdersModalTab] = useState('new');
   const [showInWaitingModal, setShowInWaitingModal] = useState(false);
   const [focusedOrderId, setFocusedOrderId] = useState(null);
   const [focusedOrderInitialItemCount, setFocusedOrderInitialItemCount] = useState(0);
@@ -124,7 +122,6 @@ export default function PosApp() {
     setSelectedCategoryId,
     currentOrder,
     orders,
-    webordersCount,
     fetchInWaitingCount,
     tables,
     addItemToOrder,
@@ -138,7 +135,6 @@ export default function PosApp() {
     fetchCategories,
     fetchProducts,
     fetchOrders,
-    fetchWebordersCount,
     fetchInPlanningCount,
     fetchTables,
     historyOrders,
@@ -211,7 +207,6 @@ export default function PosApp() {
   useEffect(() => {
     fetchCategories();
     fetchOrders();
-    fetchWebordersCount();
     fetchInPlanningCount();
     fetchInWaitingCount();
     fetchTables();
@@ -222,7 +217,6 @@ export default function PosApp() {
   }, [
     fetchCategories,
     fetchOrders,
-    fetchWebordersCount,
     fetchInPlanningCount,
     fetchInWaitingCount,
     fetchTables,
@@ -343,6 +337,27 @@ export default function PosApp() {
     );
   }
 
+  if (view === 'control') {
+    return (
+      <View style={posLayout.root}>
+        <View style={posLayout.sidebarCol}>
+          <LeftSidebar
+            categories={categories}
+            selectedCategoryId={selectedCategoryId}
+            onSelectCategory={setSelectedCategoryId}
+            currentUser={user}
+            onControlClick={() => setViewAndPersist('control')}
+            onLogout={handleLogout}
+            time={time}
+          />
+        </View>
+        <View style={posLayout.mainCol} className="min-h-0">
+          <ControlView onBack={() => setViewAndPersist('pos')} />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={posLayout.root}>
       <View style={posLayout.sidebarCol}>
@@ -351,14 +366,13 @@ export default function PosApp() {
           selectedCategoryId={selectedCategoryId}
           onSelectCategory={setSelectedCategoryId}
           currentUser={user}
-          onControlClick={undefined}
+          onControlClick={() => setViewAndPersist('control')}
           onLogout={handleLogout}
           time={time}
         />
       </View>
       <View style={posLayout.mainCol} className="min-h-0">
         <Header
-          webordersCount={webordersCount}
           inWaitingCount={inWaitingCountDisplay}
           functionButtonSlots={savedFunctionButtonsLayout}
           selectedTable={selectedTable}
@@ -366,12 +380,6 @@ export default function PosApp() {
           selectedRoomName={selectedRoomName}
           roomCount={roomCount}
           onOpenTables={handleOpenTables}
-          onOpenWeborders={() => {
-            setOrdersModalTab('new');
-            setShowOrdersModal(true);
-            fetchOrders();
-            fetchOrderHistory();
-          }}
           onOpenInWaiting={() => {
             setShowInWaitingModal(true);
             fetchOrders();
@@ -444,20 +452,6 @@ export default function PosApp() {
         />
       </View>
 
-      <WebordersModalRN
-        open={showOrdersModal}
-        onClose={() => setShowOrdersModal(false)}
-        weborders={(orders || []).filter((o) => o.status === 'in_planning')}
-        inPlanningOrders={historyOrders || []}
-        initialTab={ordersModalTab}
-        onConfirm={() => {
-          fetchOrders();
-          fetchOrderHistory();
-          fetchWebordersCount();
-          fetchInPlanningCount();
-        }}
-        onCancelOrder={removeOrder}
-      />
       <InWaitingModalRN
         open={showInWaitingModal}
         onClose={() => setShowInWaitingModal(false)}

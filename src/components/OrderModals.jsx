@@ -48,7 +48,7 @@ export function WebordersModalRN({
             {(list || []).map((o) => (
               <Pressable
                 key={o.id}
-                className={`py-3 border-b border-pos-border ${selectedOrderId === o.id ? 'bg-pos-rowHover' : ''}`}
+                className={`py-3 border-b border-pos-border ${selectedOrderId === o.id ? 'bg-green-500' : ''}`}
                 onPress={() => setSelectedOrderId(o.id)}
               >
                 <Text className="text-pos-text">{o.id?.slice(-8)} — €{Number(o.total || 0).toFixed(2)}</Text>
@@ -165,7 +165,7 @@ export function InWaitingModalRN({
           <TextInput
             value={search}
             onChangeText={setSearch}
-            placeholder="Search…"
+            placeholder={t('inWaitingModal.searchPlaceholder')}
             placeholderTextColor="#95a5a6"
             className="bg-pos-bg border border-pos-border rounded px-4 py-3 text-pos-text mb-3"
             style={{ fontSize: bodyTextSize }}
@@ -174,21 +174,29 @@ export function InWaitingModalRN({
             {shown.map((o) => (
               <Pressable
                 key={o.id}
-                className={`py-3 border-b border-pos-border ${selectedOrderId === o.id ? 'bg-pos-rowHover' : ''}`}
+                className={`py-3 border-b border-pos-border ${selectedOrderId === o.id ? 'bg-green-500' : ''}`}
                 onPress={() => setSelectedOrderId(o.id)}
               >
-                <Text className="text-pos-text" style={{ fontSize: bodyTextSize }}>
-                  {o.id?.slice(-6)} — {o?.user?.name ?? currentUser?.label ?? '—'} — €{Number(o.total || 0).toFixed(2)}
-                </Text>
+                <View className="w-full flex-row items-center justify-between gap-3">
+                  <Text className="text-pos-text flex-1" style={{ fontSize: bodyTextSize }} numberOfLines={1}>
+                    {o.id?.slice(-6)}
+                  </Text>
+                  <Text className="text-pos-text text-center flex-1" style={{ fontSize: bodyTextSize }} numberOfLines={1}>
+                    {o?.user?.name ?? currentUser?.label ?? '-'}
+                  </Text>
+                  <Text className="text-pos-text text-right flex-1" style={{ fontSize: bodyTextSize }} numberOfLines={1}>
+                    €{Number(o.total || 0).toFixed(2)}
+                  </Text>
+                </View>
               </Pressable>
             ))}
           </ScrollView>
           <View className="flex-row flex-wrap gap-2 mt-4">
             <Pressable className="flex-1 py-3 bg-pos-surface rounded" onPress={() => selectedOrderId && onViewOrder?.(selectedOrderId)}>
-              <Text className="text-center text-pos-text" style={{ fontSize: bodyTextSize }}>View</Text>
+              <Text className="text-center text-pos-text" style={{ fontSize: bodyTextSize }}>{t('inWaitingModal.view')}</Text>
             </Pressable>
             <Pressable className="flex-1 py-3 bg-pos-surface rounded" onPress={() => selectedOrderId && onPrintOrder?.(selectedOrderId)}>
-              <Text className="text-center text-pos-text" style={{ fontSize: bodyTextSize }}>Print</Text>
+              <Text className="text-center text-pos-text" style={{ fontSize: bodyTextSize }}>{t('inWaitingModal.print')}</Text>
             </Pressable>
             <Pressable className="flex-1 py-3 bg-pos-danger rounded" onPress={() => selectedOrderId && onDeleteOrder?.(selectedOrderId)}>
               <Text className="text-center text-white" style={{ fontSize: bodyTextSize }}>{t('delete')}</Text>

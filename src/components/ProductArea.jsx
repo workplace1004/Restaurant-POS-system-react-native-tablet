@@ -30,6 +30,7 @@ export function ProductArea({
   const [loadingSubproducts, setLoadingSubproducts] = useState(false);
   const [showSubproductModal, setShowSubproductModal] = useState(false);
   const [productPressLocked, setProductPressLocked] = useState(false);
+  const [subproductPressLocked, setSubproductPressLocked] = useState(false);
   const [addedSubproductIds, setAddedSubproductIds] = useState(() => new Set());
   const subproductsRequestIdRef = useRef(0);
   const productPressLockRef = useRef(false);
@@ -79,6 +80,7 @@ export function ProductArea({
     setSelectedOrderItemId(null);
     setSubproducts([]);
     setShowSubproductModal(false);
+    setSubproductPressLocked(false);
     setAddedSubproductIds(new Set());
     setLoadingSubproducts(false);
     productPressLockRef.current = false;
@@ -173,17 +175,12 @@ export function ProductArea({
 
   const handleSubproductPress = useCallback(
     async (subproduct) => {
+      if (subproductPressLocked) return;
       if (!selectedProduct || !selectedOrderItemId) return;
       const note = subproduct?.name || '';
       if (!note) return;
+      setSubproductPressLocked(true);
       const wasSelected = addedSubproductIds.has(subproduct.id);
-      // Optimistic UI: reflect toggle immediately, then sync with backend result.
-      setAddedSubproductIds((prev) => {
-        const next = new Set(prev);
-        if (next.has(subproduct.id)) next.delete(subproduct.id);
-        else next.add(subproduct.id);
-        return next;
-      });
       let wasAdded = !wasSelected;
       try {
         wasAdded = await appendSubproductNoteToItem?.(
@@ -200,6 +197,8 @@ export function ProductArea({
           return next;
         });
         return;
+      } finally {
+        setSubproductPressLocked(false);
       }
       setAddedSubproductIds((prev) => {
         const next = new Set(prev);
@@ -208,13 +207,14 @@ export function ProductArea({
         return next;
       });
     },
-    [addedSubproductIds, appendSubproductNoteToItem, selectedOrderItemId, selectedProduct]
+    [addedSubproductIds, appendSubproductNoteToItem, selectedOrderItemId, selectedProduct, subproductPressLocked]
   );
 
   const closeSubproductModal = useCallback(() => {
     setShowSubproductModal(false);
     setSelectedProduct(null);
     setSelectedOrderItemId(null);
+    setSubproductPressLocked(false);
     setAddedSubproductIds(new Set());
   }, []);
 
@@ -363,6 +363,7 @@ export function ProductArea({
                     {items.map((sp) => (
                       <Pressable
                         key={sp.id}
+                        disabled={subproductPressLocked}
                         onPress={() => handleSubproductPress(sp)}
                         style={{
                           width: '17%',
@@ -372,7 +373,8 @@ export function ProductArea({
                           padding: 4,
                           alignItems: 'center',
                           justifyContent: 'center',
-                          backgroundColor: addedSubproductIds.has(sp.id) ? '#16a34a' : '#34495e'
+                          backgroundColor: addedSubproductIds.has(sp.id) ? '#16a34a' : '#34495e',
+                          opacity: subproductPressLocked ? 0.6 : 1
                         }}
                       >
                         {sp.kioskPicture ? (
@@ -390,12 +392,14 @@ export function ProductArea({
             </View>
             <View className="w-full px-5 pb-2 flex-row justify-end gap-2 mt-6">
               <Pressable
+                disabled={subproductPressLocked}
                 onPress={closeSubproductModal}
                 style={{ paddingHorizontal: 16, paddingVertical: 8, flex: 1, borderRadius: 8, backgroundColor: '#34495e' }}
               >
                 <Text className="text-pos-text text-center">{t('cancel', 'Cancel')}</Text>
               </Pressable>
               <Pressable
+                disabled={subproductPressLocked}
                 onPress={closeSubproductModal}
                 style={{ paddingHorizontal: 16, paddingVertical: 8, flex: 1, borderRadius: 8, backgroundColor: '#16a34a' }}
               >
