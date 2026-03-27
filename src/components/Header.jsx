@@ -14,11 +14,9 @@ const ICONS = {
 
 export function Header({
   webordersCount,
-  inPlanningCount,
   inWaitingCount = 0,
   onOpenTables,
   onOpenWeborders,
-  onOpenInPlanning,
   onOpenInWaiting,
   selectedTable,
   selectedTableLabel,
@@ -69,16 +67,11 @@ export function Header({
         return {
           label: `${inWaitingCount} ${t('control.functionButton.inWaiting')}`,
           icon: ICONS['in-wacht'],
-          onPress: onOpenInWaiting || onOpenInPlanning,
+          onPress: onOpenInWaiting,
           isTablesSlot: false
         };
       case 'geplande-orders':
-        return {
-          label: `${inPlanningCount} ${t('control.functionButton.scheduledOrders')}`,
-          icon: ICONS['geplande-orders'],
-          onPress: onOpenInPlanning,
-          isTablesSlot: false
-        };
+        return null;
       case 'reservaties':
         return {
           label: t('control.functionButton.reservations'),

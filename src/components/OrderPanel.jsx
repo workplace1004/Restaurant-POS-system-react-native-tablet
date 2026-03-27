@@ -4,7 +4,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { useLanguage } from '../contexts/LanguageContext';
 import { InWaitingNameModal } from './InWaitingNameModal.native';
-import { InPlanningDateTimeModal } from './InPlanningDateTimeModal.native';
 
 const KEYPAD = [
   ['7', '8', '9'],
@@ -57,7 +56,7 @@ const ticketTextSemi = 'text-[10px] leading-tight text-pos-bg font-semibold';
 const ticketNote = 'text-[10px] leading-tight text-pos-bg opacity-90';
 const compactBtnText = 'text-[10px]';
 
-export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, onStatusChange, onCreateOrder, onRemoveAllOrders, tables, showSubtotalView = false, subtotalBreaks = [], onPaymentCompleted, selectedTable = null, currentUser = null, currentTime = '', onOpenTables, quantityInput = '', setQuantityInput, showInWaitingButton = false, showInPlanningButton = true, onOpenInPlanning, onOpenInWaiting, onSaveInWaitingAndReset, focusedOrderId = null, focusedOrderInitialItemCount = 0 }) {
+export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, onStatusChange, onCreateOrder, onRemoveAllOrders, tables, showSubtotalView = false, subtotalBreaks = [], onPaymentCompleted, selectedTable = null, currentUser = null, currentTime = '', onOpenTables, quantityInput = '', setQuantityInput, showInWaitingButton = false, onOpenInWaiting, onSaveInWaitingAndReset, focusedOrderId = null, focusedOrderInitialItemCount = 0 }) {
   const { t } = useLanguage();
   const { width: winW, height: winH } = useWindowDimensions();
   const tr = (key, fallback) => {
@@ -70,10 +69,6 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
   const [selectedItemIds, setSelectedItemIds] = useState([]);
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
   const [showInWaitingNameModal, setShowInWaitingNameModal] = useState(false);
-  const [showPayNowOrLaterModal, setShowPayNowOrLaterModal] = useState(false);
-  const [showInPlanningDateTimeModal, setShowInPlanningDateTimeModal] = useState(false);
-  const [inPlanningCalendarAction, setInPlanningCalendarAction] = useState(null); // 'payNow' | 'inPlanning'
-  const payNowFromInWaitingRef = useRef(false); // When Yes â†’ calendar â†’ Save â†’ payment: after success, set status to in_planning
   const [showPayDifferentlyModal, setShowPayDifferentlyModal] = useState(false);
   const [paymentAmounts, setPaymentAmounts] = useState({});
   const [activePaymentMethods, setActivePaymentMethods] = useState([]);
@@ -254,7 +249,6 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
   };
   const customerDisplayName = order?.customer ? (order.customer.companyName || order.customer.name) : null;
   const isViewedFromInWaiting = !!(order?.id && focusedOrderId && order.id === focusedOrderId && order?.status === 'in_waiting');
-  const isViewedFromInPlanning = !!(order?.id && focusedOrderId && order.id === focusedOrderId && order?.status === 'in_planning');
   const parseBatchData = () => {
     let boundaries = [];
     let meta = [];
@@ -627,7 +621,6 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
       setShowPayworldStatusModal(false);
       setPaymentErrorMessage(tr('orderPanel.paymentCancelled', 'Payment cancelled.'));
     }
-    payNowFromInWaitingRef.current = false;
     setShowPayDifferentlyModal(false);
     setPendingSplitCheckout(null);
   };
@@ -777,7 +770,6 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
   };
 
   const resetAfterSuccessfulPayment = () => {
-    payNowFromInWaitingRef.current = false;
     setShowPayDifferentlyModal(false);
     setPaymentAmounts({});
     setActivePaymentMethods([]);
@@ -888,7 +880,6 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
         return sum + (o ? computeOrderTotal(o) : 0);
       }, 0));
 
-      const useInPlanningForPayNow = payNowFromInWaitingRef.current;
       for (const paidOrderId of targetOrderIds) {
         const paidOrder = showSettlementActions
           ? savedOrdersForSelectedTable.find((o) => o?.id === paidOrderId)
@@ -897,8 +888,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
         const orderPaymentBreakdown = paymentBreakdown && settlementTotal > 0
           ? allocatePaymentBreakdown(paymentBreakdown, orderTotal, settlementTotal)
           : paymentBreakdown;
-        const targetStatus = useInPlanningForPayNow && paidOrder?.status === 'in_waiting' ? 'in_planning' : 'paid';
-        await onStatusChange?.(paidOrderId, targetStatus, orderPaymentBreakdown ? { paymentBreakdown: orderPaymentBreakdown } : {});
+        await onStatusChange?.(paidOrderId, 'paid', orderPaymentBreakdown ? { paymentBreakdown: orderPaymentBreakdown } : {});
       }
       await onPaymentCompleted?.(targetOrderIds);
       markSelectedTablePaid();
@@ -933,9 +923,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
           `Receipt printed successfully${printResult?.printerName ? ` on ${printResult.printerName}` : ''}.`,
         ].filter(Boolean).join(' '));
       }
-      if (useInPlanningForPayNow) {
-        onOpenInPlanning?.();
-      } else if (!hasSelectedTable) {
+      if (!hasSelectedTable) {
         await onCreateOrder?.();
       }
       resetAfterSuccessfulPayment();
@@ -994,7 +982,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                 result.push(
                   <View key={`sub-${i}`} className="mb-1 border-b border-gray-800">
                     <View className={`flex flex-row w-full items-center justify-around relative`}>
-                      <Text className={`${ticketText} font-bold shrink-0`} style={{ fontSize:'10px !important' }} numberOfLines={1}>
+                      <Text className={`${ticketText} font-bold shrink-0`} style={{ fontSize: 10 }} numberOfLines={1}>
                         {t('subtotal')}:
                       </Text>
                       <Text className={`${ticketText} font-bold shrink-0`} numberOfLines={1}>
@@ -1093,7 +1081,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                       {batchItems.map((item) => (
                         <Pressable
                           key={item.id}
-                          className={`mb-px rounded-none px-1 py-0.5 active:bg-green-500 ${selectedItemIds.includes(item.id) ? 'bg-gray-300' : ''}`}
+                          className={`mb-px rounded-none px-1 py-0.5 ${selectedItemIds.includes(item.id) ? 'bg-gray-300' : ''}`}
                           onPress={() => toggleItemSelection(item.id)}
                         >
                           <View className="w-full">
@@ -1131,7 +1119,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                 {items.slice(lastSavedBoundary).map((item) => (
                   <Pressable
                     key={item.id}
-                    className={`mb-px rounded-none px-1 py-0.5 active:bg-green-500 ${selectedItemIds.includes(item.id) ? 'bg-gray-300' : ''}`}
+                    className={`mb-px rounded-none px-1 py-0.5 ${selectedItemIds.includes(item.id) ? 'bg-gray-300' : ''}`}
                     onPress={() => toggleItemSelection(item.id)}
                   >
                     <View className="w-full">
@@ -1162,7 +1150,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                 {items.map((item) => (
                   <Pressable
                     key={item.id}
-                    className={`mb-px rounded-none px-1 py-0.5 active:bg-green-500 ${selectedItemIds.includes(item.id) ? 'bg-gray-300' : ''}`}
+                    className={`mb-px rounded-none px-1 py-0.5 ${selectedItemIds.includes(item.id) ? 'bg-gray-300' : ''}`}
                     onPress={() => toggleItemSelection(item.id)}
                   >
                     <View className="w-full">
@@ -1198,7 +1186,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
             className={`min-w-0 flex-1 py-1 items-center justify-center rounded border-none p-0 ${
               !hasSelection || isSavedTableOrder
                 ? 'bg-black/10 opacity-50 cursor-not-allowed'
-                : 'bg-black/10 active:bg-green-500'
+                : 'bg-black/10'
             }`}
             onPress={() => {
               if (isSavedTableOrder) return;
@@ -1216,7 +1204,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
             className={`min-w-0 flex-1 py-1 items-center justify-center rounded border-none p-0 ${
               !canDecreaseAll || isSavedTableOrder
                 ? 'bg-black/10 opacity-50 cursor-not-allowed'
-                : 'bg-black/10 active:bg-rose-500'
+                : 'bg-black/10'
             }`}
             onPress={() => {
               if (isSavedTableOrder) return;
@@ -1235,7 +1223,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
             className={`min-w-0 flex-1 items-center justify-center rounded border-none py-1 ${
               !hasSelection || isSavedTableOrder
                 ? 'bg-black/10 opacity-50 cursor-not-allowed'
-                : 'bg-black/10 active:bg-green-500'
+                : 'bg-black/10'
             }`}
             onPress={() => {
               if (isSavedTableOrder) return;
@@ -1252,7 +1240,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
           <Pressable
             disabled={isSavedTableOrder}
             className={`min-w-0 flex-1 items-center justify-center rounded border-none py-1 ${
-              isSavedTableOrder ? 'bg-black/10 opacity-50 cursor-not-allowed' : 'bg-black/10 active:bg-green-500'
+              isSavedTableOrder ? 'bg-black/10 opacity-50 cursor-not-allowed' : 'bg-black/10'
             }`}
             onPress={() => setShowDeleteAllModal(true)}
             accessibilityLabel={t('clear')}
@@ -1277,13 +1265,13 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
         showSettlementActions ? (
           <View className="w-full flex-row items-stretch gap-2 py-1 min-h-[59px]">
             <Pressable
-              className="min-w-0 flex-1 py-3 px-2 bg-pos-surface border-none rounded-md text-pos-text active:bg-green-500 items-center justify-center"
-              onPress={() => settlementOrder && onStatusChange?.(settlementOrder.id, 'in_planning')}
+              className="min-w-0 flex-1 py-3 px-2 bg-pos-surface border-none rounded-md text-pos-text items-center justify-center"
+              onPress={() => settlementOrder && onStatusChange?.(settlementOrder.id, 'in_waiting')}
             >
               <Text className="text-pos-text text-center text-[10px]" numberOfLines={2} ellipsizeMode="tail">{t('interimAccount')}</Text>
             </Pressable>
             <Pressable
-              className="min-w-0 flex-1 py-3 px-2 bg-pos-surface border-none rounded-md text-pos-text active:bg-green-500 items-center justify-center"
+              className="min-w-0 flex-1 py-3 px-2 bg-pos-surface border-none rounded-md text-pos-text items-center justify-center"
               onPress={() => setShowFinalSettlementModal(true)}
             >
               <Text className="text-pos-text text-center text-[10px]" numberOfLines={2} ellipsizeMode="tail">{t('finalSettlement')}</Text>
@@ -1293,7 +1281,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
           <View className="flex py-2">
             <Pressable
               className={`w-full py-3 px-2 border-none rounded-md text-md ${hasOrderItems
-                ? 'bg-pos-surface text-pos-text active:bg-green-500'
+                ? 'bg-pos-surface text-pos-text'
                 : 'bg-pos-surface text-gray-400 cursor-not-allowed opacity-70'
                 }`}
               onPress={async () => {
@@ -1334,7 +1322,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
         <View className="flex gap-1 py-1">
           {hasOrderItems && onOpenTables && hasSelectedTable ? (
             <Pressable
-              className="w-full py-2 px-2 bg-pos-accent/20 border border-pos-accent/50 rounded-md text-pos-text active:bg-green-500 text-sm font-medium"
+              className="w-full py-2 px-2 bg-pos-accent/20 border border-pos-accent/50 rounded-md text-pos-text text-sm font-medium"
               onPress={onOpenTables}
             >
               <Text className="text-pos-text text-center text-sm font-medium">
@@ -1345,7 +1333,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
           <View className="w-full min-w-0 flex-row flex-nowrap items-stretch gap-0.5">
           <Pressable
             disabled={!order?.id || !hasOrderItems || inWaitingButtonDisabled}
-            className={`min-w-0 flex-1 items-center justify-center rounded-md border-none px-0.5 py-1.5 ${order?.id && hasOrderItems && !inWaitingButtonDisabled ? 'bg-pos-surface text-pos-text active:bg-green-500' : 'bg-pos-surface text-gray-400 cursor-not-allowed opacity-70'}`}
+            className={`min-w-0 flex-1 items-center justify-center rounded-md border-none px-0.5 py-1.5 ${order?.id && hasOrderItems && !inWaitingButtonDisabled ? 'bg-pos-surface text-pos-text' : 'bg-pos-surface text-gray-400 cursor-not-allowed opacity-70'}`}
             onPress={async () => {
               if (!order?.id || !hasOrderItems || inWaitingButtonDisabled) return;
               if (isViewedFromInWaiting) {
@@ -1371,29 +1359,11 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
               {tr('orderPanel.inWaiting', 'In waiting')}
             </Text>
           </Pressable>
-          {showInPlanningButton ? (
-            <Pressable
-              disabled={!order?.id || !hasOrderItems || (!hasSelectedTable && !isViewedFromInWaiting)}
-              className={`min-w-0 flex-1 items-center justify-center rounded-md border-none px-0.5 py-1.5 ${order?.id && hasOrderItems && (hasSelectedTable || isViewedFromInWaiting) ? 'bg-pos-surface text-pos-text active:bg-green-500' : 'bg-pos-surface text-gray-400 cursor-not-allowed opacity-70'}`}
-              onPress={() => {
-                if (!order?.id || !hasOrderItems) return;
-                if (isViewedFromInWaiting) {
-                  setShowPayNowOrLaterModal(true);
-                } else {
-                  onStatusChange(order.id, 'in_planning');
-                }
-              }}
-            >
-              <Text className={`text-center leading-tight ${compactBtnText}`} numberOfLines={2}>
-                {t('inPlanning')}
-              </Text>
-            </Pressable>
-          ) : null}
           <Pressable
-            disabled={payableTotalForPaymentModal <= 0.009 && !((isViewedFromInWaiting || isViewedFromInPlanning) && hasOrderItems) && !(hasOrderItems && order?.id)}
-            className={`min-w-0 flex-1 items-center justify-center rounded-md border-none px-0.5 py-1.5 ${payableTotalForPaymentModal <= 0.009 && !((isViewedFromInWaiting || isViewedFromInPlanning) && hasOrderItems) && !(hasOrderItems && order?.id)
+            disabled={payableTotalForPaymentModal <= 0.009 && !(isViewedFromInWaiting && hasOrderItems) && !(hasOrderItems && order?.id)}
+            className={`min-w-0 flex-1 items-center justify-center rounded-md border-none px-0.5 py-1.5 ${payableTotalForPaymentModal <= 0.009 && !(isViewedFromInWaiting && hasOrderItems) && !(hasOrderItems && order?.id)
               ? 'bg-green-600/50 text-gray-400 cursor-not-allowed opacity-70'
-              : 'bg-green-600 text-white active:bg-green-500'
+              : 'bg-green-600 text-white'
               }`}
             onPress={() => openPayDifferentlyModal()}
           >
@@ -1402,7 +1372,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
             </Text>
           </Pressable>
           <Pressable
-            className="shrink-0 items-center justify-center rounded-md border-none bg-[#f0961c]/90 px-3 py-2 active:bg-[#c6a97f]"
+            className="shrink-0 items-center justify-center rounded-md border-none bg-[#f0961c]/90 px-3 py-2"
           >
             <Text className={`text-center ${compactBtnText} font-semibold text-pos-bg`}>€</Text>
           </Pressable>
@@ -1410,8 +1380,15 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
         </View>
       )}
 
-      <Modal visible={showPayDifferentlyModal} transparent animationType="fade" onRequestClose={handleCancelPayDifferentlyModal}>
-        <View className="flex-1 items-center justify-center bg-black/50 p-4">
+      <Modal
+        visible={showPayDifferentlyModal}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        presentationStyle="overFullScreen"
+        onRequestClose={handleCancelPayDifferentlyModal}
+      >
+        <View className="flex-1 items-center justify-center bg-black/50 p-4" style={{ width: '100%', height: '100%' }}>
           <View
             className="flex flex-col bg-gray-100 rounded-xl shadow-2xl max-w-[1800px] w-full overflow-auto text-gray-800"
           >
@@ -1443,7 +1420,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                           <Pressable
                             disabled={payModalSplitComplete || payModalWouldExceedTotal}
                             onPress={() => handlePaymentMethodClick(m)}
-                            className={`rounded-lg border-2 p-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isHighlighted ? 'bg-green-500 border-green-700' : 'bg-white border-gray-300'
+                            className={`rounded-lg border-2 p-2 disabled:opacity-50 disabled:cursor-not-allowed ${isHighlighted ? 'bg-green-500 border-green-700' : 'bg-white border-gray-300'
                               }`}
                             accessibilityLabel={m.name}
                           >
@@ -1490,7 +1467,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                           <Pressable
                             key={key}
                             disabled={payModalSplitComplete}
-                            className={`min-w-0 flex-1 rounded-lg py-4 text-lg font-medium ${payModalSplitComplete ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-800 active:bg-green-500'}`}
+                            className={`min-w-0 flex-1 rounded-lg py-4 text-lg font-medium ${payModalSplitComplete ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-800'}`}
                             onPress={() => handlePayModalKeypad(key)}
                           >
                             <Text className="text-center text-lg font-medium text-gray-800">{key}</Text>
@@ -1504,20 +1481,20 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
               <View className="min-w-[18%] flex flex-col items-center justify-center gap-4 p-6">
                 <Pressable
                   disabled={payModalSplitComplete}
-                  className={`py-2 px-4 w-full max-w-[200px] rounded-lg text-sm font-medium ${payModalSplitComplete ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-800 active:bg-green-500'}`}
+                  className={`py-2 px-4 w-full max-w-[200px] rounded-lg text-sm font-medium ${payModalSplitComplete ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-800'}`}
                   onPress={handlePayHalfAmount}
                 >
                   <Text className="text-center text-sm font-medium text-gray-800">{t('halfAmount')}</Text>
                 </Pressable>
                 <Pressable
                   disabled={payModalSplitComplete}
-                  className={`py-2 px-4 w-full max-w-[200px] rounded-lg text-sm font-medium ${payModalSplitComplete ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-800 active:bg-green-500'}`}
+                  className={`py-2 px-4 w-full max-w-[200px] rounded-lg text-sm font-medium ${payModalSplitComplete ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-800'}`}
                   onPress={handlePayRemaining}
                 >
                   <Text className="text-center text-sm font-medium text-gray-800">{t('remainingAmount')}</Text>
                 </Pressable>
                 <Pressable
-                  className="py-2 px-4 bg-gray-300 w-full max-w-[200px] rounded-lg text-gray-800 text-sm font-medium active:bg-green-500"
+                  className="py-2 px-4 bg-gray-300 w-full max-w-[200px] rounded-lg text-gray-800 text-sm font-medium"
                   onPress={handlePayReset}
                 >
                   <Text className="text-center text-sm font-medium text-gray-800">{t('reset')}</Text>
@@ -1526,7 +1503,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
             </View>
             <View className="flex justify-around px-6 gap-4 w-full pt-6 pb-6">
               <Pressable
-                className="w-[140px] py-2 px-4 rounded-lg text-sm font-medium bg-gray-300 text-gray-800 active:bg-green-500"
+                className="w-[140px] py-2 px-4 rounded-lg text-sm font-medium bg-gray-300 text-gray-800"
                 onPress={handleCancelPayDifferentlyModal}
               >
                 <Text className="text-center text-sm font-medium text-gray-800">{t('cancel')}</Text>
@@ -1540,7 +1517,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                 }
                 className={`w-[140px] py-2 px-4 rounded-lg text-sm font-medium ${Math.abs(payModalTotalAssigned - payModalTargetTotal) > 0.009 || payConfirmLoading || paymentMethodsLoading || activePaymentMethods.length === 0
                   ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-gray-300 text-gray-800 active:bg-green-500'
+                  : 'bg-gray-300 text-gray-800'
                   }`}
                 onPress={handleConfirmPayment}
               >
@@ -1577,14 +1554,14 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
             <View className="mt-8 flex justify-center gap-4">
               {String(payworldStatus.state || '').toUpperCase() === 'IN_PROGRESS' ? (
                 <Pressable
-                  className="min-w-[220px] py-4 bg-pos-surface text-pos-text rounded text-2xl active:bg-green-500"
+                  className="min-w-[220px] py-4 bg-pos-surface text-pos-text rounded text-2xl"
                   onPress={handleAbortPayworld}
                 >
                   <Text className="text-pos-text text-center text-2xl">{tr('orderPanel.cancelPayworld', 'Cancel Payment')}</Text>
                 </Pressable>
               ) : (
                 <Pressable
-                  className="min-w-[220px] py-4 bg-pos-surface text-pos-text rounded text-2xl active:bg-green-500"
+                  className="min-w-[220px] py-4 bg-pos-surface text-pos-text rounded text-2xl"
                   onPress={() => setShowPayworldStatusModal(false)}
                 >
                   <Text className="text-pos-text text-center text-2xl">{tr('orderPanel.closePayworldModal', 'Close')}</Text>
@@ -1606,7 +1583,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
             </Text>
             <View className="flex flex-row items-start gap-4">
               <Pressable
-                className="min-w-0 flex-1 rounded border-none bg-gray-200 text-gray-700 active:bg-green-500 items-center justify-center"
+                className="min-w-0 flex-1 rounded border-none bg-gray-200 text-gray-700 items-center justify-center"
                 style={{ minHeight: settlementOptionBtnH }}
                 onPress={() => {
                   setShowFinalSettlementModal(false);
@@ -1617,7 +1594,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
               </Pressable>
               <View className="min-w-0 flex-1 flex flex-col gap-4">
                 <Pressable
-                  className="bg-gray-200 border-none rounded text-gray-700 active:bg-green-500 items-center justify-center"
+                  className="bg-gray-200 border-none rounded text-gray-700 items-center justify-center"
                   style={{ minHeight: settlementOptionBtnH }}
                   onPress={() => {
                     setShowFinalSettlementModal(false);
@@ -1631,7 +1608,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                   <Text className="text-gray-700 text-center font-semibold" style={{ fontSize: settlementOptionTextSize }}>{t('subtotal')}</Text>
                 </Pressable>
                 <Pressable
-                  className="bg-gray-200 border-none rounded text-gray-700 active:bg-green-500 items-center justify-center"
+                  className="bg-gray-200 border-none rounded text-gray-700 items-center justify-center"
                   style={{ minHeight: settlementOptionBtnH }}
                   onPress={() => setShowFinalSettlementModal(false)}
                 >
@@ -1639,7 +1616,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                 </Pressable>
               </View>
               <Pressable
-                className="min-w-0 flex-1 rounded border-none bg-gray-200 text-gray-700 active:bg-green-500 items-center justify-center"
+                className="min-w-0 flex-1 rounded border-none bg-gray-200 text-gray-700 items-center justify-center"
                 style={{ minHeight: settlementOptionBtnH }}
                 onPress={() => {
                   setShowFinalSettlementModal(false);
@@ -1684,7 +1661,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                   {settlementSubtotalLeftLines.map((line) => (
                     <Pressable
                       key={line.id}
-                      className={`w-full text-left px-4 py-2 border-b border-pos-border/40 text-sm text-pos-text flex items-center justify-between ${subtotalSelectedLeftIds.includes(line.id) ? 'bg-pos-surface-hover' : 'active:bg-green-500'
+                      className={`w-full text-left px-4 py-2 border-b border-pos-border/40 text-sm text-pos-text flex items-center justify-between ${subtotalSelectedLeftIds.includes(line.id) ? 'bg-pos-surface-hover' : ''
                         }`}
                       onPress={() => {
                         setSubtotalSelectedLeftIds((prev) =>
@@ -1703,7 +1680,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                     disabled={settlementSubtotalLeftLines.length === 0}
                     className={`min-w-[100px] py-1 px-6 rounded text-pos-text text-md ${settlementSubtotalLeftLines.length === 0
                       ? 'bg-pos-surface opacity-50 cursor-not-allowed'
-                      : 'bg-pos-surface active:bg-green-500'
+                      : 'bg-pos-surface'
                       }`}
                     onPress={() => {
                       setSubtotalSelectedLeftIds(settlementSubtotalLeftLines.map((line) => line.id));
@@ -1717,7 +1694,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
 
               <View className="w-16 flex flex-col items-center justify-between py-16 text-pos-text mb-20">
                 <Pressable
-                  className="text-6xl leading-none active:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed active:bg-green-500"
+                  className="text-6xl leading-none disabled:opacity-40 disabled:cursor-not-allowed"
                   disabled={subtotalSelectedLeftIds.length === 0}
                   onPress={() => {
                     if (subtotalSelectedLeftIds.length === 0) return;
@@ -1736,7 +1713,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                   <Text className="text-6xl text-pos-text">→</Text>
                 </Pressable>
                 <Pressable
-                  className="text-6xl leading-none active:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed active:bg-green-500"
+                  className="text-6xl leading-none disabled:opacity-40 disabled:cursor-not-allowed"
                   disabled={subtotalSelectedRightIds.length === 0}
                   onPress={() => {
                     if (subtotalSelectedRightIds.length === 0) return;
@@ -1773,7 +1750,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                         {group.lines.map((line) => (
                           <Pressable
                             key={line.id}
-                            className={`w-full text-left px-2 py-1 text-sm text-pos-text flex items-center justify-between ${subtotalSelectedRightIds.includes(line.id) ? 'bg-pos-surface-hover' : 'active:bg-green-500'
+                            className={`w-full text-left px-2 py-1 text-sm text-pos-text flex items-center justify-between ${subtotalSelectedRightIds.includes(line.id) ? 'bg-pos-surface-hover' : ''
                               }`}
                             onPress={() => {
                               setSubtotalSelectedRightIds((prev) =>
@@ -1794,14 +1771,14 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                   </ScrollView>
                   <View className="py-1 flex items-center justify-around gap-5">
                     <Pressable
-                      className="w-10 h-10 rounded bg-pos-surface text-pos-text text-xl leading-none active:bg-green-500"
+                      className="w-10 h-10 rounded bg-pos-surface text-pos-text text-xl leading-none"
                       onPress={() => scrollSplitRightPanel(-1)}
                       accessibilityLabel={t('scrollUp')}
                     >
                       <Text className="text-pos-text text-xl">↑</Text>
                     </Pressable>
                     <Pressable
-                      className="min-w-[100px] py-2 px-6 rounded bg-pos-surface text-pos-text text-md active:bg-green-500"
+                      className="min-w-[100px] py-2 px-6 rounded bg-pos-surface text-pos-text text-md"
                       onPress={() => {
                         setSubtotalLineGroups([]);
                         setSubtotalSelectedLeftIds([]);
@@ -1811,7 +1788,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                       <Text className="text-pos-text text-center text-md">{t('again')}</Text>
                     </Pressable>
                     <Pressable
-                      className="w-10 h-10 rounded bg-pos-surface text-pos-text text-xl leading-none active:bg-green-500"
+                      className="w-10 h-10 rounded bg-pos-surface text-pos-text text-xl leading-none"
                       onPress={() => scrollSplitRightPanel(1)}
                       accessibilityLabel={t('scrollDown')}
                     >
@@ -1821,7 +1798,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                 </View>
                 <View className="pt-4 flex items-center justify-center gap-12">
                   <Pressable
-                    className="min-w-[100px] py-1 px-6 rounded bg-pos-surface text-pos-text text-md active:bg-green-500"
+                    className="min-w-[100px] py-1 px-6 rounded bg-pos-surface text-pos-text text-md"
                     onPress={() => {
                       setShowSettlementSubtotalModal(false);
                       setSettlementModalType('subtotal');
@@ -1838,7 +1815,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                         disabled={!hasSplitBillSelection}
                         className={`min-w-[150px] py-1 px-6 rounded text-md ${!hasSplitBillSelection
                           ? 'bg-pos-surface text-pos-text opacity-50 cursor-not-allowed'
-                          : 'bg-pos-surface text-pos-text active:bg-green-500'
+                          : 'bg-pos-surface text-pos-text'
                           }`}
                         onPress={() => {
                           if (!hasSplitBillSelection) return;
@@ -1857,7 +1834,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                         disabled={!hasSplitBillSelection}
                         className={`min-w-[170px] py-1 px-6 rounded text-md ${!hasSplitBillSelection
                           ? 'bg-pos-surface text-pos-text opacity-50 cursor-not-allowed'
-                          : 'bg-pos-surface text-pos-text active:bg-green-500'
+                          : 'bg-pos-surface text-pos-text'
                           }`}
                         onPress={() => {
                           if (!hasSplitBillSelection) return;
@@ -1878,7 +1855,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                       disabled={settlementSubtotalLeftLines.length > 0}
                       className={`min-w-[100px] py-1 px-6 rounded text-md ${settlementSubtotalLeftLines.length > 0
                         ? 'bg-pos-surface text-pos-text opacity-50 cursor-not-allowed'
-                        : 'bg-pos-surface text-pos-text active:bg-green-500'
+                        : 'bg-pos-surface text-pos-text'
                         }`}
                       onPress={() => {
                         if (settlementSubtotalLeftLines.length > 0) return;
@@ -1909,7 +1886,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
             <Text className="text-2xl text-pos-text text-center mb-8">{paymentSuccessMessage}</Text>
             <View className="flex justify-center">
               <Pressable
-                className="w-[200px] py-4 bg-green-600 text-white rounded text-2xl active:bg-green-500"
+                className="w-[200px] py-4 bg-green-600 text-white rounded text-2xl"
                 onPress={() => setPaymentSuccessMessage('')}
               >
                 <Text className="text-white text-center text-2xl">{t('ok')}</Text>
@@ -1918,60 +1895,6 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
           </View>
         </View>
       </Modal>
-
-      <Modal visible={showPayNowOrLaterModal} transparent animationType="fade" onRequestClose={() => setShowPayNowOrLaterModal(false)}>
-        <View className="flex-1 items-center justify-center bg-black/50">
-          <View
-            className="bg-pos-panel rounded-lg shadow-xl px-16 py-8 max-w-2xl w-full mx-4 border border-pos-border"
-          >
-            <Text id="pay-now-or-later-title" className="text-2xl mb-10 font-semibold flex justify-center w-full text-pos-text">
-              {t('payNowOrLater')}
-            </Text>
-            <View className="flex gap-4 justify-center">
-              <Pressable
-                className="flex-1 py-3 px-10 bg-pos-surface text-pos-text rounded text-xl active:bg-green-500"
-                onPress={() => {
-                  setShowPayNowOrLaterModal(false);
-                  setInPlanningCalendarAction('payNow');
-                  setShowInPlanningDateTimeModal(true);
-                }}
-              >
-                <Text className="text-pos-text text-center text-xl">{t('yes')}</Text>
-              </Pressable>
-              <Pressable
-                className="flex-1 py-3 px-10 bg-pos-surface text-pos-text rounded text-xl active:bg-green-500"
-                onPress={() => {
-                  setShowPayNowOrLaterModal(false);
-                  setInPlanningCalendarAction('inPlanning');
-                  setShowInPlanningDateTimeModal(true);
-                }}
-              >
-                <Text className="text-pos-text text-center text-xl">{t('no')}</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <InPlanningDateTimeModal
-        open={showInPlanningDateTimeModal}
-        onClose={() => {
-          setShowInPlanningDateTimeModal(false);
-          setInPlanningCalendarAction(null);
-        }}
-        onSave={(scheduledDate) => {
-          setShowInPlanningDateTimeModal(false);
-          if (inPlanningCalendarAction === 'payNow') {
-            payNowFromInWaitingRef.current = true; // After payment+print success â†’ in_planning
-            setInPlanningCalendarAction(null);
-            openPayDifferentlyModal();
-          } else if (inPlanningCalendarAction === 'inPlanning') {
-            setInPlanningCalendarAction(null);
-            order?.id && onStatusChange?.(order.id, 'in_planning');
-            onOpenInPlanning?.();
-          }
-        }}
-      />
 
       <InWaitingNameModal
         open={showInWaitingNameModal}
@@ -2001,13 +1924,13 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
             </Text>
             <View className="w-full flex-row flex-nowrap items-stretch gap-4">
               <Pressable
-                className="min-w-0 flex-1 items-center justify-center rounded bg-pos-surface py-3 px-3 active:bg-green-500"
+                className="min-w-0 flex-1 items-center justify-center rounded bg-pos-surface py-3 px-3"
                 onPress={() => setShowDeleteAllModal(false)}
               >
                 <Text className="text-center text-pos-text" style={{ fontSize: deleteModalButtonTextSize }}>{t('cancel')}</Text>
               </Pressable>
               <Pressable
-                className="min-w-0 flex-1 items-center justify-center rounded bg-pos-danger py-3 px-3 active:bg-rose-500"
+                className="min-w-0 flex-1 items-center justify-center rounded bg-pos-danger py-3 px-3"
                 onPress={async () => {
                   if (isSavedTableOrder) {
                     setShowDeleteAllModal(false);
@@ -2045,7 +1968,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
             <Text className="text-2xl text-pos-text text-center mb-8">{paymentErrorMessage}</Text>
             <View className="flex justify-center">
               <Pressable
-                className="w-[200px] py-4 bg-pos-surface text-pos-text rounded text-2xl active:bg-green-500"
+                className="w-[200px] py-4 bg-pos-surface text-pos-text rounded text-2xl"
                 onPress={() => setPaymentErrorMessage('')}
               >
                 <Text className="text-pos-text text-center text-2xl">{t('ok')}</Text>
@@ -2061,7 +1984,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
             {row.map((key) => (
               <Pressable
                 key={key}
-                className="min-w-0 flex-1 rounded-md border-none bg-pos-panel py-1.5 text-[10px] text-pos-text active:bg-green-500"
+                className="min-w-0 flex-1 rounded-md border-none bg-pos-panel py-1.5"
                 onPress={() => handleKeypad(key)}
               >
                 <Text className="text-pos-text text-center text-[10px]">{key}</Text>

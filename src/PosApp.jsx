@@ -14,7 +14,6 @@ import { LoginScreen } from './components/LoginScreen';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import {
   WebordersModalRN,
-  InPlanningModalRN,
   InWaitingModalRN,
   HistoryModalRN,
   CustomersModalRN
@@ -99,7 +98,6 @@ export default function PosApp() {
   const [time, setTime] = useState(() => formatPosClock());
   const [showOrdersModal, setShowOrdersModal] = useState(false);
   const [ordersModalTab, setOrdersModalTab] = useState('new');
-  const [showInPlanningModal, setShowInPlanningModal] = useState(false);
   const [showInWaitingModal, setShowInWaitingModal] = useState(false);
   const [focusedOrderId, setFocusedOrderId] = useState(null);
   const [focusedOrderInitialItemCount, setFocusedOrderInitialItemCount] = useState(0);
@@ -361,7 +359,6 @@ export default function PosApp() {
       <View style={posLayout.mainCol} className="min-h-0">
         <Header
           webordersCount={webordersCount}
-          inPlanningCount={inPlanningCountDisplay}
           inWaitingCount={inWaitingCountDisplay}
           functionButtonSlots={savedFunctionButtonsLayout}
           selectedTable={selectedTable}
@@ -374,10 +371,6 @@ export default function PosApp() {
             setShowOrdersModal(true);
             fetchOrders();
             fetchOrderHistory();
-          }}
-          onOpenInPlanning={() => {
-            setShowInPlanningModal(true);
-            fetchOrders();
           }}
           onOpenInWaiting={() => {
             setShowInWaitingModal(true);
@@ -424,7 +417,6 @@ export default function PosApp() {
             setFocusedOrderId(null);
             setFocusedOrderInitialItemCount(0);
           }}
-          showInPlanningButton={Array.isArray(savedFunctionButtonsLayout) && savedFunctionButtonsLayout.includes('geplande-orders')}
           onSaveInWaitingAndReset={async () => {
             setFocusedOrderId(null);
             setFocusedOrderInitialItemCount(0);
@@ -445,10 +437,6 @@ export default function PosApp() {
           quantityInput={quantityInput}
           setQuantityInput={setQuantityInput}
           showInWaitingButton={showInWaitingButton}
-          onOpenInPlanning={() => {
-            setShowInPlanningModal(true);
-            fetchOrders();
-          }}
           onOpenInWaiting={() => {
             setShowInWaitingModal(true);
             fetchOrders();
@@ -469,24 +457,6 @@ export default function PosApp() {
           fetchInPlanningCount();
         }}
         onCancelOrder={removeOrder}
-      />
-      <InPlanningModalRN
-        open={showInPlanningModal}
-        onClose={() => setShowInPlanningModal(false)}
-        orders={orders || []}
-        onDeleteOrder={async (orderId) => {
-          await removeOrder(orderId);
-          fetchInPlanningCount();
-        }}
-        onLoadOrder={(orderId) => {
-          setSelectedTable(null);
-          setSelectedTableLabel(null);
-          const ord = (orders || []).find((o) => o.id === orderId);
-          setFocusedOrderId(orderId);
-          setFocusedOrderInitialItemCount(ord?.items?.length ?? 0);
-          setShowInPlanningModal(false);
-        }}
-        onFetchOrders={fetchOrders}
       />
       <InWaitingModalRN
         open={showInWaitingModal}

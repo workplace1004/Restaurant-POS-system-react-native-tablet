@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, Modal, ScrollView } from 'react-native';
+import { View, Text, Pressable, Modal, ScrollView, useWindowDimensions } from 'react-native';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const DEVICE_SETTINGS_STORAGE_KEY = 'pos_device_settings';
@@ -72,6 +72,7 @@ export function Footer({
   onHistoryClick
 }) {
   const { t } = useLanguage();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const footerLabelClass = 'text-xs leading-tight text-pos-text';
   const tr = (key, fallback) => {
     const translated = t(key);
@@ -112,6 +113,8 @@ export function Footer({
   };
 
   const functionButtonBaseClass = 'bg-[#4ab3ff] text-pos-text active:bg-[#4ab3ff]/45';
+  const moreModalWidth = Math.max(320, Math.min(1400, Math.floor((windowWidth || 1024) * 0.9)));
+  const moreModalMaxHeight = Math.max(220, Math.floor((windowHeight || 700) * 0.72));
 
   return (
     <View className="w-full shrink-0 items-center bg-pos-bg px-2 pb-2">
@@ -152,16 +155,26 @@ export function Footer({
         })}
       </View>
 
-      <Modal visible={showMoreMenu} transparent animationType="fade" onRequestClose={() => setShowMoreMenu(false)}>
-        <View className="flex-1 justify-center items-center">
+      <Modal
+        visible={showMoreMenu}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        presentationStyle="overFullScreen"
+        onRequestClose={() => setShowMoreMenu(false)}
+      >
+        <View className="flex-1 justify-center items-center" style={{ width: '100%', height: '100%' }}>
           {/** Backdrop only: taps here close; modal panel is above and does not use this handler */}
           <Pressable
             accessibilityLabel="Close menu"
             className="absolute inset-0 bg-black/40"
             onPress={() => setShowMoreMenu(false)}
           />
-          <View className="relative z-10 w-[90%] max-h-[70%] rounded-xl border border-pos-border bg-pos-panel p-4">
-            <ScrollView className="max-h-[55vh]" contentContainerStyle={{ paddingBottom: 8 }}>
+          <View
+            className="relative z-10 rounded-xl border border-pos-border bg-pos-panel p-4"
+            style={{ width: moreModalWidth, maxHeight: moreModalMaxHeight }}
+          >
+            <ScrollView style={{ maxHeight: Math.max(140, moreModalMaxHeight - 24) }} contentContainerStyle={{ paddingBottom: 8 }}>
               <View className="w-full gap-2">
                 {Array.from({ length: MORE_GRID_ROWS }, (_, row) => (
                   <View key={`more-grid-row-${row}`} className="w-full flex-row gap-2">
