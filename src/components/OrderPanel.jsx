@@ -92,6 +92,8 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
   const settlementOptionsWidth = Math.max(420, Math.min(1100, Math.floor((winW || 1024) * 0.9)));
   const settlementOptionBtnH = Math.max(56, Math.min(86, Math.floor((winH || 700) * 0.095)));
   const settlementOptionTextSize = Math.max(20, Math.min(36, Math.floor((winW || 1024) * 0.026)));
+  const payModalWidth = Math.max(360, Math.min(1500, Math.floor((winW || 1024) * 0.94)));
+  const payModalMaxHeight = Math.max(320, Math.floor((winH || 700) * 0.88));
   const [subtotalLineGroups, setSubtotalLineGroups] = useState([]);
   const [subtotalSelectedLeftIds, setSubtotalSelectedLeftIds] = useState([]);
   const [subtotalSelectedRightIds, setSubtotalSelectedRightIds] = useState([]);
@@ -1390,15 +1392,17 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
       >
         <View className="flex-1 items-center justify-center bg-black/50 p-4" style={{ width: '100%', height: '100%' }}>
           <View
-            className="flex flex-col bg-gray-100 rounded-xl shadow-2xl max-w-[1800px] w-full overflow-auto text-gray-800"
+            className="flex flex-col bg-gray-100 rounded-xl shadow-2xl w-full text-gray-800"
+            style={{ width: payModalWidth, maxHeight: payModalMaxHeight }}
           >
-            {/* Left: Total + payment methods */}
-            <View className="flex items-center justify-center">
-              <View className="p-6 min-w-[56%] w-full h-full flex flex-col">
+            <ScrollView className="w-full" contentContainerStyle={{ paddingBottom: 8 }}>
+              {/* Left: Total + payment methods */}
+              <View className="flex items-center justify-center">
+                <View className="p-6 min-w-[56%] w-full flex flex-col">
                 <Text className="text-lg font-semibold mb-3 w-full text-center text-gray-800">
                   {t('total')}: €{payModalTargetTotal.toFixed(2)}
                 </Text>
-                <View className="mb-4 h-full w-full flex flex-row flex-wrap items-start justify-center gap-4">
+                <View className="mb-4 w-full flex flex-row flex-wrap items-start justify-center gap-4">
                   {paymentMethodsLoading ? (
                     <View className="w-full py-6 text-center text-sm text-gray-600">
                       {tr('orderPanel.loadingPaymentMethods', 'Loading payment methods...')}
@@ -1447,61 +1451,45 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                     })
                   )}
                 </View>
-              </View>
-              {/* Right: Assigned + input + keypad */}
-              <View className="min-w-[26%] p-6">
-                <Text className="mb-2 text-center text-lg font-semibold">{`${t('assigned')}: €${payModalTotalAssigned.toFixed(2)}`}</Text>
-                <View className="flex justify-center mt-2">
+                </View>
+                {/* Assigned + manual amount input on one line */}
+                <View className="w-full p-6 pt-0">
+                <View className="w-full flex-row items-center justify-center gap-4">
                   <TextInput
-                    editable={false}
-                    className="w-[160px] py-2 px-3 bg-gray-200 rounded-lg text-base mb-3 text-gray-800"
+                    editable={!payModalSplitComplete}
+                    className="w-full max-w-[320px] py-2 px-3 bg-gray-200 rounded-lg text-base text-gray-800"
                     value={payModalKeypadInput}
+                    onChangeText={(text) => setPayModalKeypadInput(String(text || '').replace(',', '.').replace(/[^0-9.]/g, ''))}
+                    keyboardType="decimal-pad"
                     accessibilityLabel={t('amountKeypad')}
                   />
+                  <Text className="text-center text-lg font-semibold shrink-0">{`${t('assigned')}: €${payModalTotalAssigned.toFixed(2)}`}</Text>
                 </View>
-                <View className="flex gap-2 flex-1 min-h-0 mt-3">
-                  <View className="flex flex-col gap-1.5 flex-1">
-                    {KEYPAD.map((row, ri) => (
-                      <View key={ri} className="flex flex-row gap-1.5">
-                        {row.map((key) => (
-                          <Pressable
-                            key={key}
-                            disabled={payModalSplitComplete}
-                            className={`min-w-0 flex-1 rounded-lg py-4 text-lg font-medium ${payModalSplitComplete ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-800'}`}
-                            onPress={() => handlePayModalKeypad(key)}
-                          >
-                            <Text className="text-center text-lg font-medium text-gray-800">{key}</Text>
-                          </Pressable>
-                        ))}
-                      </View>
-                    ))}
-                  </View>
                 </View>
-              </View>
-              <View className="min-w-[18%] flex flex-col items-center justify-center gap-4 p-6">
+                <View className="w-full flex flex-row items-center justify-center gap-4 p-6 pt-0">
                 <Pressable
                   disabled={payModalSplitComplete}
-                  className={`py-2 px-4 w-full max-w-[200px] rounded-lg text-sm font-medium ${payModalSplitComplete ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-800'}`}
+                  className={`py-2 px-4 min-w-[180px] rounded-lg text-sm font-medium ${payModalSplitComplete ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-800'}`}
                   onPress={handlePayHalfAmount}
                 >
                   <Text className="text-center text-sm font-medium text-gray-800">{t('halfAmount')}</Text>
                 </Pressable>
                 <Pressable
                   disabled={payModalSplitComplete}
-                  className={`py-2 px-4 w-full max-w-[200px] rounded-lg text-sm font-medium ${payModalSplitComplete ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-800'}`}
+                  className={`py-2 px-4 min-w-[180px] rounded-lg text-sm font-medium ${payModalSplitComplete ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-800'}`}
                   onPress={handlePayRemaining}
                 >
                   <Text className="text-center text-sm font-medium text-gray-800">{t('remainingAmount')}</Text>
                 </Pressable>
                 <Pressable
-                  className="py-2 px-4 bg-gray-300 w-full max-w-[200px] rounded-lg text-gray-800 text-sm font-medium"
+                  className="py-2 px-4 bg-gray-300 min-w-[180px] rounded-lg text-gray-800 text-sm font-medium"
                   onPress={handlePayReset}
                 >
                   <Text className="text-center text-sm font-medium text-gray-800">{t('reset')}</Text>
                 </Pressable>
+                </View>
               </View>
-            </View>
-            <View className="flex justify-around px-6 gap-4 w-full pt-6 pb-6">
+              <View className="flex justify-around px-6 gap-4 w-full pt-4 pb-6">
               <Pressable
                 className="w-[140px] py-2 px-4 rounded-lg text-sm font-medium bg-gray-300 text-gray-800"
                 onPress={handleCancelPayDifferentlyModal}
@@ -1525,7 +1513,8 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                   {payConfirmLoading ? t('processing') : t('toConfirm')}
                 </Text>
               </Pressable>
-            </View>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>

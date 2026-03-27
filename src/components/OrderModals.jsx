@@ -26,8 +26,15 @@ export function WebordersModalRN({
   const list = activeTab === 'new' ? weborders : inPlanningOrders;
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 bg-black/50 justify-center p-4">
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      presentationStyle="overFullScreen"
+      onRequestClose={onClose}
+    >
+      <View className="flex-1 bg-black/50 justify-center p-4" style={{ width: '100%', height: '100%' }}>
         <View className="bg-pos-panel rounded-xl border border-pos-border max-h-[85%] p-4">
           <View className="flex-row justify-around mb-4">
             <Pressable onPress={() => setActiveTab('new')} className={`pb-2 px-4 ${activeTab === 'new' ? 'border-b-2 border-green-500' : ''}`}>

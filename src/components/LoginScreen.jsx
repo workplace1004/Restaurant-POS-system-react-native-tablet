@@ -1,15 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Modal } from 'react-native';
+import { View, Text, Pressable, ScrollView, Modal, TextInput } from 'react-native';
 import { useLanguage } from '../contexts/LanguageContext';
 
-const PAD = [
-  ['7', '8', '9'],
-  ['4', '5', '6'],
-  ['1', '2', '3'],
-  ['Again', '0']
-];
-
 const TOAST_DURATION_MS = 3500;
+const AUTO_LOGIN_MIN_PIN_LENGTH = 4;
 
 export function LoginScreen({ time, onLogin }) {
   const { t } = useLanguage();
@@ -18,6 +12,7 @@ export function LoginScreen({ time, onLogin }) {
   const [pinInput, setPinInput] = useState('');
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loginInFlight, setLoginInFlight] = useState(false);
   const scrollRef = useRef(null);
   const scrollXRef = useRef(0);
 
@@ -45,20 +40,13 @@ export function LoginScreen({ time, onLogin }) {
     return () => clearTimeout(id);
   }, [toast]);
 
-  const handlePadKey = (key) => {
-    if (key === 'Again') {
-      setPinInput('');
-      return;
-    }
-    if (pinInput.length >= 8) return;
-    setPinInput((prev) => prev + key);
-  };
-
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = useCallback(async ({ silent = false } = {}) => {
+    if (loginInFlight) return;
     if (!selectedUser) {
-      setToast(t('loginSelectUser'));
+      if (!silent) setToast(t('loginSelectUser'));
       return;
     }
+    setLoginInFlight(true);
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -67,16 +55,31 @@ export function LoginScreen({ time, onLogin }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setToast(data.error || t('loginWrongPin'));
-        setPinInput('');
+        if (!silent) {
+          setToast(data.error || t('loginWrongPin'));
+          setPinInput('');
+        }
         return;
       }
       onLogin?.(data);
     } catch {
-      setToast(t('loginFailed'));
-      setPinInput('');
+      if (!silent) {
+        setToast(t('loginFailed'));
+        setPinInput('');
+      }
+    } finally {
+      setLoginInFlight(false);
     }
-  }, [selectedUser, pinInput, onLogin, t]);
+  }, [selectedUser, pinInput, onLogin, t, loginInFlight]);
+
+  useEffect(() => {
+    if (!selectedUser) return undefined;
+    if (pinInput.length < AUTO_LOGIN_MIN_PIN_LENGTH) return undefined;
+    const id = setTimeout(() => {
+      handleSubmit({ silent: true });
+    }, 220);
+    return () => clearTimeout(id);
+  }, [selectedUser, pinInput, handleSubmit]);
 
   const scrollUsers = (dir) => {
     const step = 200;
@@ -134,27 +137,24 @@ export function LoginScreen({ time, onLogin }) {
         </View>
 
         <View className="bg-pos-panel rounded-xl p-6 w-full max-w-md mt-6">
-          <View className="mb-4 h-16 items-center justify-center bg-pos-bg rounded">
-            <Text className="text-xl font-mono text-white tracking-widest">
-              {pinInput.replace(/./g, '•') || t('pin')}
-            </Text>
+          <View className="mb-4 h-16 items-center justify-center bg-pos-bg rounded px-3">
+            <TextInput
+              value={pinInput}
+              onChangeText={(text) => {
+                const numeric = String(text || '').replace(/\D/g, '').slice(0, 8);
+                setPinInput(numeric);
+              }}
+              placeholder={t('pin')}
+              placeholderTextColor="#cfd8dc"
+              className="w-full text-center text-xl font-mono text-white tracking-widest"
+              secureTextEntry
+              keyboardType="number-pad"
+              maxLength={8}
+              autoCorrect={false}
+              autoCapitalize="none"
+              selectionColor="#ffffff"
+            />
           </View>
-          <View className="flex-row flex-wrap gap-2 justify-center">
-            {PAD.map((row) =>
-              row.map((key) => (
-                <Pressable
-                  key={key}
-                  className={`py-3 px-4 rounded-lg min-w-[28%] items-center ${key === 'Again' ? 'bg-pos-bg flex-[2]' : 'bg-pos-bg'}`}
-                  onPress={() => handlePadKey(key === 'Again' ? 'Again' : key)}
-                >
-                  <Text className="text-xl text-white font-semibold">{key === 'Again' ? t('again') : key}</Text>
-                </Pressable>
-              ))
-            )}
-          </View>
-          <Pressable className="w-full mt-4 py-3 bg-green-600 rounded-lg items-center" onPress={handleSubmit}>
-            <Text className="text-white text-xl font-semibold">{t('loginButton')}</Text>
-          </Pressable>
         </View>
       </View>
 
