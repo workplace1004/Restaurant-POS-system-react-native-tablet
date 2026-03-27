@@ -42,6 +42,13 @@ const OPTION_BUTTON_LABELS = {
   'webshop-tijdsloten': { key: 'control.optionButton.webshopTimeslots', fallback: 'Webshop time slots' }
 };
 
+/** Bottom footer row: these option slots use smaller white labels (Drawer, Customers, History, Subtotal, Return name, More). */
+const FOOTER_ROW_COMPACT_WHITE_IDS = new Set(['lade', 'klanten', 'historiek', 'subtotaal', 'terugname', 'meer']);
+
+/** “More” modal: first 21 option slots are a fixed 3×7 grid (same indices as saved `optionButtonLayout`). */
+const MORE_GRID_COLS = 7;
+const MORE_GRID_ROWS = 3;
+
 function normalizeOptionButtonSlots(value) {
   if (!Array.isArray(value)) return [...DEFAULT_OPTION_BUTTON_LAYOUT];
   const next = Array(OPTION_BUTTON_SLOT_COUNT).fill('');
@@ -65,6 +72,7 @@ export function Footer({
   onHistoryClick
 }) {
   const { t } = useLanguage();
+  const footerLabelClass = 'text-xs leading-tight text-pos-text';
   const tr = (key, fallback) => {
     const translated = t(key);
     return translated === key ? fallback : translated;
@@ -106,11 +114,12 @@ export function Footer({
   const functionButtonBaseClass = 'bg-[#4ab3ff] text-pos-text active:bg-[#4ab3ff]/45';
 
   return (
-    <View className="flex items-center pb-2 px-2 bg-pos-bg shrink-0">
-      <View className="flex flex-row flex-wrap gap-1 text-sm w-full relative">
+    <View className="w-full shrink-0 items-center bg-pos-bg px-2 pb-2">
+      {/** flex-wrap + min-w-% wrapped rows; one even row = flex-nowrap + flex-1 min-w-0 */}
+      <View className="relative w-full flex-row flex-nowrap gap-1 text-sm">
         {footerRowSlotIds.map((slotId, index) => {
           if (!slotId) {
-            return <View key={`footer-empty-${index}`} className="flex-1 min-w-[12%]" />;
+            return <View key={`footer-empty-${index}`} className="min-w-0 flex-1" />;
           }
           const isCustomers = slotId === 'klanten';
           const isHistory = slotId === 'historiek';
@@ -118,20 +127,24 @@ export function Footer({
           const disabled = isSubtotal ? subtotalButtonDisabled : false;
           const active =
             (isCustomers && customersActive) || (isSubtotal && showSubtotalView) || (isHistory && false);
+          const compactWhite = FOOTER_ROW_COMPACT_WHITE_IDS.has(slotId);
+          const labelClassName = compactWhite
+            ? 'px-0.5 text-center text-[8px] leading-tight text-white'
+            : `px-0.5 text-center ${footerLabelClass}`;
           return (
             <Pressable
               key={`footer-slot-${slotId}-${index}`}
               disabled={disabled}
-              className={`py-3 flex-1 min-w-[12%] border-none rounded overflow-hidden ${
+              className={`min-w-0 flex-1 overflow-hidden border-none py-2 ${
                 disabled
-                  ? 'bg-[#4ab3ff]/40 text-pos-text opacity-60'
+                  ? 'rounded-none bg-[#4ab3ff]/40 opacity-60'
                   : active
-                    ? 'bg-pos-surface text-white'
-                    : functionButtonBaseClass
+                    ? 'rounded-none bg-pos-surface'
+                    : `rounded-sm ${functionButtonBaseClass}`
               }`}
               onPress={() => handleFooterButtonClick(slotId)}
             >
-              <Text className="text-center text-xs" numberOfLines={2}>
+              <Text className={labelClassName} numberOfLines={2} ellipsizeMode="tail">
                 {getLabel(slotId)}
               </Text>
             </Pressable>
@@ -140,29 +153,47 @@ export function Footer({
       </View>
 
       <Modal visible={showMoreMenu} transparent animationType="fade" onRequestClose={() => setShowMoreMenu(false)}>
-        <Pressable className="flex-1 bg-black/40 justify-end" onPress={() => setShowMoreMenu(false)}>
-          <View className="bg-pos-panel p-4 rounded-t-xl border border-pos-border max-h-[70%]">
-            <ScrollView className="flex flex-row flex-wrap gap-2">
-              {moreGridSlotIds.map((id, idx) => {
-                if (!id) return <View key={`more-empty-${idx}`} className="w-[13%] min-h-[46px]" />;
-                return (
-                  <Pressable
-                    key={`more-grid-${id}-${idx}`}
-                    className={`px-2 rounded text-center min-h-[46px] min-w-[13%] justify-center ${functionButtonBaseClass}`}
-                    onPress={() => handleFooterButtonClick(id)}
-                  >
-                    <Text className="text-xs text-center" numberOfLines={3}>
-                      {getLabel(id).replace(/\s*\n\s*/g, ' ')}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+        <View className="flex-1 justify-center items-center">
+          {/** Backdrop only: taps here close; modal panel is above and does not use this handler */}
+          <Pressable
+            accessibilityLabel="Close menu"
+            className="absolute inset-0 bg-black/40"
+            onPress={() => setShowMoreMenu(false)}
+          />
+          <View className="relative z-10 w-[90%] max-h-[70%] rounded-xl border border-pos-border bg-pos-panel p-4">
+            <ScrollView className="max-h-[55vh]" contentContainerStyle={{ paddingBottom: 8 }}>
+              <View className="w-full gap-2">
+                {Array.from({ length: MORE_GRID_ROWS }, (_, row) => (
+                  <View key={`more-grid-row-${row}`} className="w-full flex-row gap-2">
+                    {Array.from({ length: MORE_GRID_COLS }, (_, col) => {
+                      const idx = row * MORE_GRID_COLS + col;
+                      const id = moreGridSlotIds[idx];
+                      const cellClass = 'min-h-[48px] flex-1 min-w-0 justify-center rounded-sm px-1';
+                      if (!id) {
+                        return <View key={`more-empty-${idx}`} className={`${cellClass} bg-transparent`} />;
+                      }
+                      return (
+                        <Pressable
+                          key={`more-grid-${id}-${idx}`}
+                          className={`${cellClass} ${functionButtonBaseClass}`}
+                          onPress={() => handleFooterButtonClick(id)}
+                        >
+                          <Text
+                            className="text-center text-[10px] leading-tight text-white"
+                            numberOfLines={3}
+                            ellipsizeMode="tail"
+                          >
+                            {getLabel(id).replace(/\s*\n\s*/g, ' ')}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                ))}
+              </View>
             </ScrollView>
-            <Pressable className="mt-4 py-2 bg-pos-bg rounded" onPress={() => setShowMoreMenu(false)}>
-              <Text className="text-center text-pos-text">{t('cancel')}</Text>
-            </Pressable>
           </View>
-        </Pressable>
+        </View>
       </Modal>
     </View>
   );

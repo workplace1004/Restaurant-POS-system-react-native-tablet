@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Modal, TextInput, StyleSheet, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, Modal, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { useLanguage } from '../contexts/LanguageContext';
 import { InWaitingNameModal } from './InWaitingNameModal.native';
@@ -17,10 +18,6 @@ const roundCurrency = (n) => Math.round((Number(n) || 0) * 100) / 100;
 const formatPaymentAmount = (n) => `\u20AC${roundCurrency(n).toFixed(2)}`;
 const TABLE_SAVED_ORDERS_API = '/api/settings/table-saved-orders';
 
-/** Order ticket card (white panel): 12px body copy */
-const ticketText = 'text-[8px] text-pos-bg';
-const ticketTextSemi = 'text-[8px] text-pos-bg font-semibold';
-const ticketNote = 'text-[8px] text-pos-bg opacity-90';
 /** RN defaults flexDirection to column — flex-row keeps label + price on one line */
 const ticketLineRow = 'flex flex-row w-full items-center justify-between';
 const ticketNoteRow = 'flex flex-row w-full items-center justify-between pl-6';
@@ -53,6 +50,12 @@ function allocatePaymentBreakdown(paymentBreakdown, orderTotal, totalOfAllOrders
   }
   return Object.keys(allocated).length > 0 ? { amounts: allocated } : null;
 }
+
+/** Order ticket card (white panel) — tablet-oriented type size */
+const ticketText = 'text-[10px] leading-tight text-pos-bg';
+const ticketTextSemi = 'text-[10px] leading-tight text-pos-bg font-semibold';
+const ticketNote = 'text-[10px] leading-tight text-pos-bg opacity-90';
+const compactBtnText = 'text-[10px]';
 
 export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, onStatusChange, onCreateOrder, onRemoveAllOrders, tables, showSubtotalView = false, subtotalBreaks = [], onPaymentCompleted, selectedTable = null, currentUser = null, currentTime = '', onOpenTables, quantityInput = '', setQuantityInput, showInWaitingButton = false, showInPlanningButton = true, onOpenInPlanning, onOpenInWaiting, onSaveInWaitingAndReset, focusedOrderId = null, focusedOrderInitialItemCount = 0 }) {
   const { t } = useLanguage();
@@ -943,12 +946,12 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
     <View className="flex-1 min-h-0 w-full flex flex-col px-2 py-1 bg-pos-bg">
       <View className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg bg-white">
         {customerDisplayName ? (
-          <View className="px-2 py-2 text-center border-b border-pos-border">
+          <View className="px-2 py-1 text-center border-b border-pos-border">
             <Text className={`${ticketText} font-medium truncate block`}>{customerDisplayName}</Text>
           </View>
         ) : null}
         {showSubtotalView ? (
-          <ScrollView ref={orderListScrollRef} className="min-h-0 flex-1 p-4 py-2">
+          <ScrollView ref={orderListScrollRef} className="min-h-0 flex-1 px-2 py-1">
             {(() => {
               let start = 0;
               const result = [];
@@ -958,7 +961,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                 const groupTotal = group.reduce((s, it) => s + it.price * it.quantity, 0);
                 group.forEach((item) => (
                   result.push(
-                    <View key={item.id} className="mb-[2px]">
+                    <View key={item.id} className="mb-px">
                       <View className={ticketLineRow}>
                         <Text className={`${ticketText} font-medium flex-1 min-w-0 pr-2`} numberOfLines={1} ellipsizeMode="tail">
                           {item.quantity}x {getItemLabel(item)}
@@ -981,7 +984,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                   )
                 ));
                 result.push(
-                  <View key={`sub-${i}`} className="border-b border-gray-800 mb-2">
+                  <View key={`sub-${i}`} className="mb-1 border-b border-gray-800">
                     <View className={`flex flex-row w-full items-center justify-around relative`}>
                       <Text className={`${ticketText} font-bold shrink-0`} style={{ fontSize:'10px !important' }} numberOfLines={1}>
                         {t('subtotal')}:
@@ -997,7 +1000,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
               const remaining = items.slice(start);
               remaining.forEach((item) =>
                 result.push(
-                  <View key={item.id} className="mb-[2px]">
+                  <View key={item.id} className="mb-px">
                     <View className={ticketLineRow}>
                       <Text className={`${ticketText} font-medium flex-1 min-w-0 pr-2`} numberOfLines={1} ellipsizeMode="tail">
                         {item.quantity}x {getItemLabel(item)}
@@ -1023,13 +1026,13 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
             })()}
           </ScrollView>
         ) : (
-          <ScrollView ref={orderListScrollRef} className="min-h-0 flex-1 p-2">
+          <ScrollView ref={orderListScrollRef} className="min-h-0 flex-1 px-1.5 py-0.5">
             {savedOrdersForSelectedTable.map((savedOrder) => (
               <View key={`saved-order-${savedOrder.id}`}>
                 {(savedOrder.items || []).map((item) => (
                   <View
                     key={`saved-${savedOrder.id}-${item.id}`}
-                    className="mb-[2px] p-1 rounded"
+                    className="mb-px rounded px-1 py-0.5"
                   >
                     <View className="w-full">
                       <View className={ticketLineRow}>
@@ -1053,13 +1056,13 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                     </View>
                   </View>
                 ))}
-                <View className="pt-1 px-2">
+                <View className="px-1.5 pt-0.5">
                   {(() => {
                     const savedMeta = savedOrderMetaById.get(savedOrder.id);
                     const savedCashierName = savedMeta?.cashierName || cashierName;
                     const savedTime = formatSavedOrderTime(savedMeta?.savedAt, savedOrder?.createdAt);
                     return (
-                      <View className="flex items-center justify-around py-1 pt-0">
+                      <View className="flex items-center justify-around py-0.5">
                         <Text className={`${ticketTextSemi} opacity-90`}>{savedCashierName}</Text>
                         <Text className={`${ticketTextSemi} opacity-90`}>{savedTime}</Text>
                       </View>
@@ -1082,7 +1085,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                       {batchItems.map((item) => (
                         <Pressable
                           key={item.id}
-                          className={`mb-[2px] p-2 py-1 rounded-md active:bg-green-500 ${selectedItemIds.includes(item.id) ? 'bg-gray-300' : ''}`}
+                          className={`mb-px rounded-none px-1 py-0.5 active:bg-green-500 ${selectedItemIds.includes(item.id) ? 'bg-gray-300' : ''}`}
                           onPress={() => toggleItemSelection(item.id)}
                         >
                           <View className="w-full">
@@ -1107,8 +1110,8 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                           </View>
                         </Pressable>
                       ))}
-                      <View className="pt-1 px-2">
-                        <View className="flex items-center justify-around py-1 pt-0">
+                      <View className="px-1.5 pt-0.5">
+                        <View className="flex items-center justify-around py-0.5">
                           <Text className={`${ticketTextSemi} opacity-90`}>{metaUserName}</Text>
                           <Text className={`${ticketTextSemi} opacity-90`}>{metaTime}</Text>
                         </View>
@@ -1120,7 +1123,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                 {items.slice(lastSavedBoundary).map((item) => (
                   <Pressable
                     key={item.id}
-                    className={`mb-[2px] p-2 py-1 rounded-md active:bg-green-500 ${selectedItemIds.includes(item.id) ? 'bg-gray-300' : ''}`}
+                    className={`mb-px rounded-none px-1 py-0.5 active:bg-green-500 ${selectedItemIds.includes(item.id) ? 'bg-gray-300' : ''}`}
                     onPress={() => toggleItemSelection(item.id)}
                   >
                     <View className="w-full">
@@ -1151,7 +1154,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                 {items.map((item) => (
                   <Pressable
                     key={item.id}
-                    className={`mb-[2px] p-2 py-1 rounded-md active:bg-green-500 ${selectedItemIds.includes(item.id) ? 'bg-gray-300' : ''}`}
+                    className={`mb-px rounded-none px-1 py-0.5 active:bg-green-500 ${selectedItemIds.includes(item.id) ? 'bg-gray-300' : ''}`}
                     onPress={() => toggleItemSelection(item.id)}
                   >
                     <View className="w-full">
@@ -1181,10 +1184,10 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
           </ScrollView>
         )}
       </View>
-        <View className="flex items-center gap-2 py-1 px-2 border-t border-black/10 text-xl">
+      <View className="w-full min-w-0 flex-row items-center gap-1 border-t border-black/10 px-1">
           <Pressable
             disabled={!hasSelection}
-            className={`w-12 h-12 p-0 flex items-center justify-center border-none rounded text-xl ${
+            className={`min-w-0 flex-1 py-1 items-center justify-center rounded border-none p-0 ${
               !hasSelection || isSavedTableOrder
                 ? 'bg-black/10 opacity-50 cursor-not-allowed'
                 : 'bg-black/10 active:bg-green-500'
@@ -1198,11 +1201,11 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
               }
             }}
           >
-            <Text className="text-white text-xl font-bold">+</Text>
+            <Text className="text-xl font-bold text-white">+</Text>
           </Pressable>
           <Pressable
             disabled={!canDecreaseAll || isSavedTableOrder}
-            className={`w-12 h-12 p-0 flex items-center justify-center border-none rounded text-3xl ${
+            className={`min-w-0 flex-1 py-1 items-center justify-center rounded border-none p-0 ${
               !canDecreaseAll || isSavedTableOrder
                 ? 'bg-black/10 opacity-50 cursor-not-allowed'
                 : 'bg-black/10 active:bg-rose-500'
@@ -1218,13 +1221,14 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
               }
             }}
           >
-            <Text className="text-white text-2xl font-bold">{'\u2212'}</Text>
+            <Text className="text-2xl font-bold text-white">{'\u2212'}</Text>
           </Pressable>
           <Pressable
-            className={`flex-1 py-2 flex items-center justify-center border-none rounded ${!hasSelection || isSavedTableOrder
-              ? 'opacity-50 cursor-not-allowed'
-              : 'active:bg-green-500'
-              }`}
+            className={`min-w-0 flex-1 items-center justify-center rounded border-none py-1 ${
+              !hasSelection || isSavedTableOrder
+                ? 'bg-black/10 opacity-50 cursor-not-allowed'
+                : 'bg-black/10 active:bg-green-500'
+            }`}
             onPress={() => {
               if (isSavedTableOrder) return;
               if (order && selectedItemIds.length > 0) {
@@ -1235,21 +1239,22 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
             disabled={!hasSelection || isSavedTableOrder}
             accessibilityLabel={t('remove')}
           >
-            <ExpoImage source={{ uri: '/delete.svg' }} style={{ width: 32, height: 32 }} contentFit="contain" />
+            <MaterialCommunityIcons name="delete-outline" size={20} color="#ffffff" />
           </Pressable>
           <Pressable
             disabled={isSavedTableOrder}
-            className={`flex-1 py-2 flex items-center justify-center border-none rounded ${isSavedTableOrder ? 'opacity-50 cursor-not-allowed' : 'active:bg-green-500'
-              }`}
+            className={`min-w-0 flex-1 items-center justify-center rounded border-none py-1 ${
+              isSavedTableOrder ? 'bg-black/10 opacity-50 cursor-not-allowed' : 'bg-black/10 active:bg-green-500'
+            }`}
             onPress={() => setShowDeleteAllModal(true)}
             accessibilityLabel={t('clear')}
           >
-            <ExpoImage source={{ uri: '/clear.svg' }} style={{ width: 32, height: 32 }} contentFit="contain" />
+            <MaterialCommunityIcons name="delete-sweep" size={20} color="#ffffff" />
           </Pressable>
         </View>
 
-      <View className="flex w-full flex-row items-center gap-2 px-1 py-1">
-        <Text className="min-w-0 flex-1 text-[11px] font-semibold text-pos-text" numberOfLines={1} ellipsizeMode="tail">
+      <View className="flex w-full flex-row items-center gap-2 px-1 py-0.5">
+        <Text className="min-w-0 flex-1 text-[11px] font-semibold leading-tight text-pos-text" numberOfLines={1} ellipsizeMode="tail">
           {`${t('total')}: €${payableTotal.toFixed(2)}`}
         </Text>
         <TextInput
@@ -1318,7 +1323,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
           </View>
         )
       ) : (
-        <View className="flex gap-2 py-1">
+        <View className="flex gap-1 py-1">
           {hasOrderItems && onOpenTables && hasSelectedTable ? (
             <Pressable
               className="w-full py-2 px-2 bg-pos-accent/20 border border-pos-accent/50 rounded-md text-pos-text active:bg-green-500 text-sm font-medium"
@@ -1329,10 +1334,10 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
               </Text>
             </Pressable>
           ) : null}
-          <View className="w-full min-w-0 flex-row flex-nowrap items-center gap-1.5">
+          <View className="w-full min-w-0 flex-row flex-nowrap items-stretch gap-0.5">
           <Pressable
             disabled={!order?.id || !hasOrderItems || inWaitingButtonDisabled}
-            className={`min-w-0 flex-1 items-center justify-center rounded-md border-none py-2 ${order?.id && hasOrderItems && !inWaitingButtonDisabled ? 'bg-pos-surface text-pos-text active:bg-green-500' : 'bg-pos-surface text-gray-400 cursor-not-allowed opacity-70'}`}
+            className={`min-w-0 flex-1 items-center justify-center rounded-md border-none px-0.5 py-1.5 ${order?.id && hasOrderItems && !inWaitingButtonDisabled ? 'bg-pos-surface text-pos-text active:bg-green-500' : 'bg-pos-surface text-gray-400 cursor-not-allowed opacity-70'}`}
             onPress={async () => {
               if (!order?.id || !hasOrderItems || inWaitingButtonDisabled) return;
               if (isViewedFromInWaiting) {
@@ -1354,14 +1359,14 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
               }
             }}
           >
-            <Text className="text-center text-[8px]" numberOfLines={1} ellipsizeMode="tail">
+            <Text className={`text-center leading-tight ${compactBtnText}`} numberOfLines={2}>
               {tr('orderPanel.inWaiting', 'In waiting')}
             </Text>
           </Pressable>
           {showInPlanningButton ? (
             <Pressable
               disabled={!order?.id || !hasOrderItems || (!hasSelectedTable && !isViewedFromInWaiting)}
-              className={`min-w-0 flex-1 items-center justify-center rounded-md border-none py-2 ${order?.id && hasOrderItems && (hasSelectedTable || isViewedFromInWaiting) ? 'bg-pos-surface text-pos-text active:bg-green-500' : 'bg-pos-surface text-gray-400 cursor-not-allowed opacity-70'}`}
+              className={`min-w-0 flex-1 items-center justify-center rounded-md border-none px-0.5 py-1.5 ${order?.id && hasOrderItems && (hasSelectedTable || isViewedFromInWaiting) ? 'bg-pos-surface text-pos-text active:bg-green-500' : 'bg-pos-surface text-gray-400 cursor-not-allowed opacity-70'}`}
               onPress={() => {
                 if (!order?.id || !hasOrderItems) return;
                 if (isViewedFromInWaiting) {
@@ -1371,27 +1376,27 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                 }
               }}
             >
-              <Text className="text-center text-[8px]" numberOfLines={1} ellipsizeMode="tail">
+              <Text className={`text-center leading-tight ${compactBtnText}`} numberOfLines={2}>
                 {t('inPlanning')}
               </Text>
             </Pressable>
           ) : null}
           <Pressable
             disabled={payableTotalForPaymentModal <= 0.009 && !((isViewedFromInWaiting || isViewedFromInPlanning) && hasOrderItems) && !(hasOrderItems && order?.id)}
-            className={`min-w-0 flex-1 items-center justify-center rounded-md border-none py-2 ${payableTotalForPaymentModal <= 0.009 && !((isViewedFromInWaiting || isViewedFromInPlanning) && hasOrderItems) && !(hasOrderItems && order?.id)
+            className={`min-w-0 flex-1 items-center justify-center rounded-md border-none px-0.5 py-1.5 ${payableTotalForPaymentModal <= 0.009 && !((isViewedFromInWaiting || isViewedFromInPlanning) && hasOrderItems) && !(hasOrderItems && order?.id)
               ? 'bg-green-600/50 text-gray-400 cursor-not-allowed opacity-70'
               : 'bg-green-600 text-white active:bg-green-500'
               }`}
             onPress={() => openPayDifferentlyModal()}
           >
-            <Text className="text-center text-[8px] font-semibold text-white" numberOfLines={1} ellipsizeMode="tail">
+            <Text className={`text-center leading-tight ${compactBtnText} font-semibold text-white`} numberOfLines={2}>
               {t('payDifferently')}
             </Text>
           </Pressable>
           <Pressable
             className="shrink-0 items-center justify-center rounded-md border-none bg-[#f0961c]/90 px-3 py-2 active:bg-[#c6a97f]"
           >
-            <Text className="text-center text-[8px] font-semibold text-pos-bg">€</Text>
+            <Text className={`text-center ${compactBtnText} font-semibold text-pos-bg`}>€</Text>
           </Pressable>
           </View>
         </View>
@@ -1977,18 +1982,18 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
           <View
             className="bg-pos-panel rounded-lg shadow-xl px-16 py-8 max-w-2xl w-full mx-4 border border-pos-border"
           >
-            <Text className="text-2xl mb-10 font-semibold text-center w-full text-pos-text">
+            <Text className="text-xl mb-10 font-semibold text-center w-full text-pos-text">
                 {t('clearListConfirm')}
             </Text>
-            <View className="flex gap-3 justify-between">
+            <View className="w-full flex-row flex-nowrap items-stretch gap-[100px]">
               <Pressable
-                className="py-3 px-10 bg-pos-surface text-pos-text rounded text-xl active:bg-green-500"
+                className="min-w-0 flex-1 items-center justify-center rounded bg-pos-surface py-2 px-3 active:bg-green-500"
                 onPress={() => setShowDeleteAllModal(false)}
               >
-                <Text className="text-pos-text text-center text-xl">{t('cancel')}</Text>
+                <Text className="text-center text-md text-pos-text">{t('cancel')}</Text>
               </Pressable>
               <Pressable
-                className="py-3 px-10 bg-pos-danger text-white rounded text-xl active:bg-green-500"
+                className="min-w-0 flex-1 items-center justify-center rounded bg-pos-danger py-2 px-3 active:bg-rose-500"
                 onPress={async () => {
                   if (isSavedTableOrder) {
                     setShowDeleteAllModal(false);
@@ -2008,7 +2013,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                   setSelectedItemIds([]);
                 }}
               >
-                <Text className="text-white text-center text-xl">{t('ok')}</Text>
+                <Text className="text-white text-center text-md">{t('ok')}</Text>
               </Pressable>
             </View>
           </View>
@@ -2036,16 +2041,16 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
         </View>
       </Modal>
 
-      <View className="min-h-[28%] max-h-[28%] shrink-0 flex flex-col gap-1">
+      <View className="min-h-[25%] max-h-[25%] shrink-0 flex flex-col gap-1">
         {KEYPAD.map((row, ri) => (
           <View key={ri} className="flex flex-row gap-1">
             {row.map((key) => (
               <Pressable
                 key={key}
-                className="min-w-0 flex-1 rounded-md border-none bg-pos-panel py-1.5 text-sm text-pos-text active:bg-green-500"
+                className="min-w-0 flex-1 rounded-md border-none bg-pos-panel py-1.5 text-[10px] text-pos-text active:bg-green-500"
                 onPress={() => handleKeypad(key)}
               >
-                <Text className="text-pos-text text-center text-sm">{key}</Text>
+                <Text className="text-pos-text text-center text-[10px]">{key}</Text>
               </Pressable>
             ))}
           </View>

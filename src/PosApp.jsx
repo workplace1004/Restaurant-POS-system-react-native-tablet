@@ -25,17 +25,18 @@ const USER_STORAGE_KEY = 'pos-user';
 const VIEW_STORAGE_KEY = 'pos-view';
 const VALID_VIEWS = ['pos', 'tables'];
 
+/** Tablet POS shell: fixed column ratios (no width-based “phone vs tablet” switching). */
 const posLayout = StyleSheet.create({
   root: { flex: 1, flexDirection: 'row', backgroundColor: '#2c3e50' },
-  sidebarCol: { minWidth: '16%', maxWidth: 280, flexShrink: 0 },
-  mainCol: { flex: 1, minWidth: 220, minHeight: 0, flexDirection: 'column' },
+  sidebarCol: { minWidth: '18%', maxWidth: 320, flexShrink: 0 },
+  mainCol: { flex: 1, minWidth: 260, minHeight: 0, flexDirection: 'column' },
   orderCol: {
-    minWidth: '25%',
-    maxWidth: '25%',
+    minWidth: '24%',
+    maxWidth: '24%',
     flexShrink: 0,
     borderLeftWidth: StyleSheet.hairlineWidth,
-    borderLeftColor: '#34495e',
-  },
+    borderLeftColor: '#34495e'
+  }
 });
 
 function loadStoredUser() {

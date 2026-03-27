@@ -103,13 +103,13 @@ export function LeftSidebar({
         {categories.map((cat) => (
           <Pressable
             key={cat.id}
-            className={`px-2.5 py-1.5 rounded-lg mb-1 ${
+            className={`px-3 py-2 rounded-lg mb-1 ${
               selectedCategoryId === cat.id ? 'bg-pos-panel border border-green-500' : 'bg-pos-panel/50'
             }`}
             onPress={() => onSelectCategory(cat.id)}
           >
             <Text
-              className={`text-[8px] ${selectedCategoryId === cat.id ? 'text-green-500 font-medium' : 'text-pos-text'}`}
+              className={`text-xs ${selectedCategoryId === cat.id ? 'text-green-500 font-medium' : 'text-pos-text'}`}
               numberOfLines={2}
             >
               {cat.name}

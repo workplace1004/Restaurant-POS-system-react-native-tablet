@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Modal, Dimensions } from 'react-native';
+import { View, Text, Pressable, ScrollView, Modal, useWindowDimensions } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -18,6 +18,7 @@ export function TablesView({
   api = '/api'
 }) {
   const { t } = useLanguage();
+  const { width: winW, height: winH } = useWindowDimensions();
   const [rooms, setRooms] = useState([]);
   const [roomsLoading, setRoomsLoading] = useState(true);
   const [layoutsLoading, setLayoutsLoading] = useState(true);
@@ -115,7 +116,24 @@ export function TablesView({
   };
 
   const showLoading = roomsLoading || layoutsLoading;
-  const { width: winW, height: winH } = Dimensions.get('window');
+  const viewportH = winH > 0 ? winH : 600;
+  const viewportW = winW > 0 ? winW : 1024;
+  const roomModalWidth = Math.max(360, Math.min(980, Math.floor(viewportW * 0.92)));
+  const roomModalMaxHeight = Math.max(300, Math.floor(viewportH * 0.82));
+  const roomTitleSize = Math.max(20, Math.min(30, Math.floor(viewportW * 0.02)));
+  const roomItemFontSize = Math.max(12, Math.min(20, Math.floor(viewportW * 0.015)));
+  const floorBaseWidth = Math.max(800, Number(layout?.floorWidth) || 800);
+  const floorBaseHeight = Math.max(600, Number(layout?.floorHeight) || 600);
+  const floorScale = Math.min(
+    1,
+    (viewportW - 48) / floorBaseWidth,
+    (Math.max(360, viewportH * 0.76) - 16) / floorBaseHeight
+  );
+  const scaledFloorWidth = Math.max(320, Math.floor(floorBaseWidth * floorScale));
+  const scaledFloorHeight = Math.max(260, Math.floor(floorBaseHeight * floorScale));
+  const fallbackTileSize = Math.max(110, Math.min(200, Math.floor(Math.min(viewportW * 0.2, viewportH * 0.24))));
+  const fallbackImageSize = Math.floor(fallbackTileSize * 0.95);
+  const fallbackLabelSize = Math.max(22, Math.floor(fallbackTileSize * 0.22));
 
   if (showLoading) {
     return <LoadingSpinner label={t('loadingTables')} />;
@@ -127,12 +145,14 @@ export function TablesView({
         <Text className="text-2xl text-pos-text">{time}</Text>
       </View>
 
-      <ScrollView className="flex-1 bg-[#b0b0b0] p-4" contentContainerStyle={{ minHeight: winH * 0.55 }}>
+      <ScrollView className="flex-1 bg-[#b0b0b0] p-3" contentContainerStyle={{ minHeight: viewportH * 0.55 }}>
         {useLayoutMode ? (
-          <View style={{ width: Math.max(winW, Number(layout?.floorWidth) || 800), height: Math.max(400, Number(layout?.floorHeight) || 600), position: 'relative' }}>
+          <View style={{ width: scaledFloorWidth, height: scaledFloorHeight, position: 'relative', alignSelf: 'center' }}>
             {layoutTables.map((layoutTable, idx) => {
-              const w = layoutTable.round ? Math.max(70, layoutTable.width) : layoutTable.width || 130;
-              const h = layoutTable.round ? w : layoutTable.height || 155;
+              const rawW = layoutTable.round ? Math.max(70, layoutTable.width) : layoutTable.width || 130;
+              const w = Math.max(48, Math.floor(rawW * floorScale));
+              const rawH = layoutTable.round ? rawW : layoutTable.height || 155;
+              const scaledH = Math.max(48, Math.floor(rawH * floorScale));
               const matchedTable =
                 tables.find((tb) => {
                   const nameMatch =
@@ -153,10 +173,10 @@ export function TablesView({
                   key={layoutTable.id || id}
                   className={`absolute items-center justify-center border-2 border-transparent ${layoutTable.round ? 'rounded-full' : 'rounded-md'} ${bg}`}
                   style={{
-                    left: Math.max(0, Number(layoutTable.x) || 0),
-                    top: Math.max(0, Number(layoutTable.y) || 0),
+                    left: Math.max(0, Math.floor((Number(layoutTable.x) || 0) * floorScale)),
+                    top: Math.max(0, Math.floor((Number(layoutTable.y) || 0) * floorScale)),
                     width: w,
-                    height: h,
+                    height: scaledH,
                     transform: [{ rotate: `${Number(layoutTable.rotation) || 0}deg` }]
                   }}
                   onPress={() =>
@@ -166,13 +186,18 @@ export function TablesView({
                     })
                   }
                 >
-                  <Text className="text-white text-xl font-bold">{tableNumber}</Text>
+                  <Text
+                    className="text-white font-bold"
+                    style={{ fontSize: Math.max(14, Math.floor(Math.min(w, scaledH) * 0.34)) }}
+                  >
+                    {tableNumber}
+                  </Text>
                 </Pressable>
               );
             })}
           </View>
         ) : (
-          <View className="flex-row flex-wrap gap-4 justify-center">
+          <View className="flex-row flex-wrap gap-3 justify-center">
             {tablesForCurrentRoom.map((tb) => {
               if (!tb?.id) return null;
               const id = String(tb.id);
@@ -184,7 +209,8 @@ export function TablesView({
               return (
                 <Pressable
                   key={id}
-                  className="w-40 h-40 items-center justify-center rounded-lg overflow-hidden bg-pos-panel border-2 border-pos-border"
+                  className="items-center justify-center rounded-lg overflow-hidden bg-pos-panel border-2 border-pos-border"
+                  style={{ width: fallbackTileSize, height: fallbackTileSize }}
                   onPress={() =>
                     handleSelectAndClose(tb, {
                       tableLabel: tableNumber,
@@ -192,10 +218,10 @@ export function TablesView({
                     })
                   }
                 >
-                  <ExpoImage source={{ uri: '/table.png' }} style={{ width: 160, height: 160 }} contentFit="contain" />
+                  <ExpoImage source={{ uri: '/table.png' }} style={{ width: fallbackImageSize, height: fallbackImageSize }} contentFit="contain" />
                   {hasOpenOrders ? <View className="absolute inset-0 bg-rose-500/50" /> : null}
                   {!hasOpenOrders && wasPaidRecently ? <View className="absolute inset-0 bg-green-500/50" /> : null}
-                  <Text className="absolute text-white text-3xl font-bold">{tableNumber}</Text>
+                  <Text className="absolute text-white font-bold" style={{ fontSize: fallbackLabelSize }}>{tableNumber}</Text>
                 </Pressable>
               );
             })}
@@ -221,29 +247,30 @@ export function TablesView({
         </Pressable>
       </View>
 
-      <Modal visible={showRoomsModal} transparent animationType="fade">
-        <Pressable className="flex-1 bg-black/60 justify-center p-4" onPress={() => setShowRoomsModal(false)}>
-          <View className="bg-pos-bg rounded-xl border border-pos-border p-6 max-h-[80%]">
-            <Text className="text-pos-text text-2xl font-semibold mb-4">{t('room1')}</Text>
+      <Modal visible={showRoomsModal} transparent animationType="fade" statusBarTranslucent>
+        <View className="flex-1 justify-center items-center p-4">
+          <Pressable className="absolute inset-0 bg-black/60" onPress={() => setShowRoomsModal(false)} />
+          <View className="bg-pos-bg rounded-xl border border-pos-border p-4" style={{ width: roomModalWidth, maxHeight: roomModalMaxHeight }}>
+            <Text className="text-pos-text font-semibold mb-2" style={{ fontSize: roomTitleSize }}>{t('room1')}</Text>
             <ScrollView>
               {sortedRooms.map((room, idx) => (
                 <Pressable
                   key={room?.id ?? idx}
-                  className={`py-3 px-4 rounded-lg mb-2 ${selectedRoomIndex === idx ? 'bg-pos-rowHover border-2 border-pos-border' : 'bg-pos-panel'}`}
+                  className={`py-3 px-5 rounded-lg mb-1 ${selectedRoomIndex === idx ? 'bg-pos-rowHover border-2 border-pos-border' : 'bg-pos-panel'}`}
                   onPress={() => {
                     setSelectedRoomIndex(idx);
                     setShowRoomsModal(false);
                   }}
                 >
-                  <Text className="text-pos-text">{room?.name ?? `Room ${idx + 1}`}</Text>
+                  <Text className="text-pos-text" style={{ fontSize: roomItemFontSize }}>{room?.name ?? `Room ${idx + 1}`}</Text>
                 </Pressable>
               ))}
             </ScrollView>
-            <Pressable className="mt-4 py-2 bg-pos-panel rounded border border-pos-border" onPress={() => setShowRoomsModal(false)}>
-              <Text className="text-center text-pos-text">{t('backName')}</Text>
+            <Pressable className="mt-4 py-3 bg-pos-panel rounded border border-pos-border" onPress={() => setShowRoomsModal(false)}>
+              <Text className="text-center text-pos-text" style={{ fontSize: roomItemFontSize }}>{t('backName')}</Text>
             </Pressable>
           </View>
-        </Pressable>
+        </View>
       </Modal>
     </View>
   );

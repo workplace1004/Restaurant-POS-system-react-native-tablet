@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, Modal, TextInput, Dimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, Modal, TextInput, StyleSheet, useWindowDimensions } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -16,6 +16,12 @@ export function ProductArea({
   appendSubproductNoteToItem
 }) {
   const { t } = useLanguage();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const clamp = useCallback((value, min, max) => Math.min(max, Math.max(min, value)), []);
+  const GRID_COLS = 6;
+  const GRID_ROWS = 8;
+  const GRID_GAP = 2;
+  const [productAreaHeight, setProductAreaHeight] = useState(0);
   const [page, setPage] = useState(0);
   const [subPage, setSubPage] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -234,78 +240,116 @@ export function ProductArea({
     yellow: { backgroundColor: '#ff2d3d', color: '#ffffff' },
     gray: { backgroundColor: '#4ab3ff', color: '#ffffff' }
   };
+  const baseProductCellStyle = { position: 'relative', flex: 1, minWidth: 0 };
+  const emptyProductCellStyle = { backgroundColor: 'rgba(44,62,80,0.2)' };
+  const defaultProductCellStyle = { backgroundColor: '#34495e' };
+
+  const dynamicTile = useMemo(() => {
+    // Keep a strict 6x8 matrix (48 cells) inside the measured product area.
+    const estimatedGridH = productAreaHeight > 0 ? productAreaHeight : 640;
+    const tileHeight = Math.max(1, Math.floor((estimatedGridH - GRID_GAP * (GRID_ROWS - 1)) / GRID_ROWS));
+    const visualBase = tileHeight;
+    const imageSize = Math.round(clamp(visualBase * 0.58, 30, 68));
+    const nameFontSize = Math.round(clamp(visualBase * 0.24, 9, 16));
+    const priceFontSize = Math.round(clamp(visualBase * 0.24, 10, 17));
+    return { tileHeight, imageSize, nameFontSize, priceFontSize };
+  }, [GRID_GAP, GRID_ROWS, clamp, productAreaHeight]);
 
   return (
     <>
       <View className="flex-1 flex flex-col min-w-0 p-4 bg-pos-bg py-2">
-        <View className="p-1 overflow-auto flex-1">
+        <View
+          className="p-1 flex-1"
+          onLayout={(e) => {
+            const h = Number(e?.nativeEvent?.layout?.height) || 0;
+            if (h > 0) setProductAreaHeight(h);
+          }}
+        >
           {!layoutForCategory ? (
-            <View className="col-span-full flex items-center justify-center min-h-[100px] max-h-[100px]">
+            <View className="w-full flex items-center justify-center min-h-[100px] max-h-[100px]">
               <Text className="text-pos-surface text-lg text-center px-2">{t('selectCategoryToSeeProducts')}</Text>
             </View>
           ) : (
-            <View className="grid grid-cols-6 gap-1 content-start text-lg">
-              {pageCells.map((entry, idx) => {
-                const product = typeof entry === 'string' && entry.startsWith('p:')
-                  ? productById.get(entry.slice(2))
-                  : null;
-                const absoluteIdx = pageStart + idx;
-                const colorId = colorForCategory[String(absoluteIdx)];
-                const tileStyle = colorStyleById[colorId] || undefined;
-                if (!product) {
-                  return (
-                    <View
-                      key={`empty-${idx}`}
-                      className="min-h-[70px] max-h-[70px] rounded-lg bg-transparent"
-                    />
-                  );
-                }
-                return (
-                  <Pressable
-                    key={`${product.id}-${idx}`}
-                    disabled={productPressLocked || loadingSubproducts}
-                    style={tileStyle}
-                    className={`flex relative flex-row items-center gap-1 justify-center px-1 border-none rounded-lg text-sm min-h-[70px] max-h-[70px] ${tileStyle ? '' : 'bg-pos-panel'} ${(productPressLocked || loadingSubproducts) ? 'opacity-70 cursor-not-allowed' : ''} ${selectedProduct?.id === product.id ? 'ring-2 ring-pos-text' : ''
-                      }`}
-                    onPress={() => handleProductPress(product)}
-                  >
-                    {product.kassaPhotoPath ? (
-                      <ExpoImage
-                        source={{ uri: String(product.kassaPhotoPath) }}
-                        className="absolute top-1 left-1 rounded"
-                        style={{ width: 45, height: 45 }}
-                        contentFit="cover"
-                      />
-                    ) : null}
-                    <Text className="text-sm absolute bottom-0 left-0 pb-1 pl-1 max-w-[100px] leading-tight text-pos-text">{product.name}</Text>
-                    <Text className="font-semibold absolute top-0 right-0 pr-1 pt-1 text-sm text-pos-text">€{Number(product.price).toFixed(2)}</Text>
-                  </Pressable>
-                );
-              })}
+            <View className="w-full" style={{ rowGap: GRID_GAP }}>
+              {Array.from({ length: GRID_ROWS }, (_, row) => (
+                <View key={`product-row-${row}`} className="w-full flex-row" style={{ columnGap: GRID_GAP }}>
+                  {Array.from({ length: GRID_COLS }, (_, col) => {
+                    const idx = row * GRID_COLS + col;
+                    const entry = pageCells[idx];
+                    const product = typeof entry === 'string' && entry.startsWith('p:')
+                      ? productById.get(entry.slice(2))
+                      : null;
+                    const absoluteIdx = pageStart + idx;
+                    const colorId = colorForCategory[String(absoluteIdx)];
+                    const tileStyle = colorStyleById[colorId] || undefined;
+
+                    return (
+                      <Pressable
+                        key={`product-cell-${idx}`}
+                        disabled={!product || productPressLocked || loadingSubproducts}
+                        onPress={product ? () => handleProductPress(product) : undefined}
+                        style={[
+                          baseProductCellStyle,
+                          { height: dynamicTile.tileHeight },
+                          tileStyle || (product ? defaultProductCellStyle : emptyProductCellStyle),
+                          (!product || productPressLocked || loadingSubproducts) ? { opacity: 0.7 } : null,
+                        ]}
+                      >
+                        {product?.kassaPhotoPath ? (
+                          <ExpoImage
+                            source={{ uri: String(product.kassaPhotoPath) }}
+                            className="absolute top-1 left-1 rounded"
+                            style={{ width: dynamicTile.imageSize, height: dynamicTile.imageSize }}
+                            contentFit="cover"
+                          />
+                        ) : null}
+                        {product ? (
+                          <>
+                            <Text
+                              className="absolute bottom-0 left-0 pl-1 leading-tight text-pos-text"
+                              style={{ maxWidth: '72%', fontSize: dynamicTile.nameFontSize, lineHeight: dynamicTile.nameFontSize + 1 }}
+                            >
+                              {product.name}
+                            </Text>
+                            <Text
+                              className="font-semibold absolute top-0 right-0 pr-1 pt-1 text-pos-text"
+                              style={{ fontSize: dynamicTile.priceFontSize, lineHeight: dynamicTile.priceFontSize + 1 }}
+                            >
+                              €{Number(product.price).toFixed(2)}
+                            </Text>
+                          </>
+                        ) : null}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ))}
             </View>
           )}
         </View>
       </View>
 
       {showSubproductModal && selectedProduct && (
-        <Modal visible transparent animationType="fade" onRequestClose={closeSubproductModal}>
-          <Pressable className="flex-1 bg-black/50 justify-start" onPress={closeSubproductModal}>
-            <View
-              className="bg-pos-bg rounded-r-xl border-r border-y border-pos-border p-6 mt-8 max-h-[90%]"
-              style={{ width: Math.min(770, Dimensions.get('window').width * 0.9) }}
-            >
-            <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-lg font-medium text-pos-text flex-1 pr-2">
+        <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={closeSubproductModal}>
+          <View style={{ flex: 1, width: windowWidth || 0, height: windowHeight || 0 }}>
+            <Pressable style={styles.modalBackdrop} onPress={closeSubproductModal} />
+            <View style={styles.modalCenterWrap}>
+              <View
+                className="bg-pos-bg rounded-xl border border-pos-border p-6 max-h-[90%]"
+                style={{ width: Math.min(770, Math.max(320, windowWidth || 0) * 0.9) }}
+              >
+            {/* <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-md font-medium text-pos-text flex-1 pr-2">
                 {selectedProduct.name} — {t('subproducts', 'Subproducts')}
               </Text>
               <Pressable
-                className="p-2 rounded active:bg-green-500"
+                className="p-2 rounded"
                 onPress={closeSubproductModal}
                 accessibilityLabel={t('close', 'Close')}
               >
                 <Text className="text-pos-text text-2xl">×</Text>
               </Pressable>
-            </View>
+            </View> */}
             <View className="space-y-6">
               {loadingSubproducts && subproducts.length === 0 ? (
                 <View className="py-8">
@@ -313,25 +357,30 @@ export function ProductArea({
                 </View>
               ) : null}
               {subproductsByGroup.map(({ groupId, groupName, items }) => (
-                <View key={groupId} className='flex'>
-                  <Text className="text-md font-medium text-pos-text mb-2 min-w-[80px]">{groupName || t('other', 'Other')}</Text>
-                  <View className="grid grid-cols-5 gap-2 w-full">
+                <View key={groupId} className='flex flex-row mb-2'>
+                  <Text className="text-[10px] font-medium text-pos-text mb-2 min-w-[80px]">{groupName || t('other', 'Other')}</Text>
+                  <View className="w-full flex flex-row flex-wrap gap-2">
                     {items.map((sp) => (
                       <Pressable
                         key={sp.id}
-                        className={`flex items-center justify-center p-1 min-h-[50px] max-h-[50px] rounded-lg transition-colors ${
-                          addedSubproductIds.has(sp.id)
-                            ? 'bg-green-600 text-white active:bg-green-500'
-                            : 'bg-pos-panel text-pos-text active:bg-green-500'
-                        }`}
                         onPress={() => handleSubproductPress(sp)}
+                        style={{
+                          width: '17%',
+                          minHeight: 45,
+                          maxHeight: 45,
+                          borderRadius: 8,
+                          padding: 4,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: addedSubproductIds.has(sp.id) ? '#16a34a' : '#34495e'
+                        }}
                       >
                         {sp.kioskPicture ? (
                           <ExpoImage source={{ uri: String(sp.kioskPicture) }} className="rounded" style={{ width: 40, height: 40 }} contentFit="cover" />
                         ) : null}
                         <View className="flex flex-col items-center justify-center">
-                          <Text className="text-sm font-medium truncate w-full text-center">{sp.name}</Text>
-                          <Text className={`text-xs ${addedSubproductIds.has(sp.id) ? 'text-white/90' : 'text-pos-muted'}`}>€{Number(sp.price ?? 0).toFixed(2)}</Text>
+                          <Text className="text-[10px] font-medium truncate w-full text-center text-white">{sp.name}</Text>
+                          <Text className="text-[8px] text-white">€{Number(sp.price ?? 0).toFixed(2)}</Text>
                         </View>
                       </Pressable>
                     ))}
@@ -341,23 +390,36 @@ export function ProductArea({
             </View>
             <View className="w-full px-5 pb-2 flex-row justify-end gap-2 mt-6">
               <Pressable
-                className="px-4 py-2 flex-1 rounded-lg border border-pos-border bg-pos-panel active:bg-green-500"
                 onPress={closeSubproductModal}
+                style={{ paddingHorizontal: 16, paddingVertical: 8, flex: 1, borderRadius: 8, backgroundColor: '#34495e' }}
               >
                 <Text className="text-pos-text text-center">{t('cancel', 'Cancel')}</Text>
               </Pressable>
               <Pressable
-                className="px-4 py-2 flex-1 rounded-lg bg-green-600 active:bg-green-500"
                 onPress={closeSubproductModal}
+                style={{ paddingHorizontal: 16, paddingVertical: 8, flex: 1, borderRadius: 8, backgroundColor: '#16a34a' }}
               >
                 <Text className="text-white text-center font-semibold">{t('ok', 'OK')}</Text>
               </Pressable>
             </View>
+              </View>
             </View>
-          </Pressable>
+          </View>
         </Modal>
       )}
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)'
+  },
+  modalCenterWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center'
+  }
+});
 
