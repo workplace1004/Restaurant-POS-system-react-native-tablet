@@ -233,12 +233,12 @@ export function ProductArea({
   }, [subproducts]);
 
   const colorStyleById = {
-    green: { backgroundColor: '#83c664', color: '#ffffff' },
-    blue: { backgroundColor: '#0000ff', color: '#ffffff' },
-    pink: { backgroundColor: '#e97c64', color: '#ffffff' },
-    orange: { backgroundColor: '#f0961c', color: '#ffffff' },
-    yellow: { backgroundColor: '#ff2d3d', color: '#ffffff' },
-    gray: { backgroundColor: '#4ab3ff', color: '#ffffff' }
+    green: { backgroundColor: '#1F8E41', color: '#ffffff' },
+    orange: { backgroundColor: '#B45309', color: '#ffffff' },
+    blue: { backgroundColor: '#1D4ED8', color: '#ffffff' },
+    pink: { backgroundColor: '#B91C1C', color: '#ffffff' },
+    gray: { backgroundColor: '#6D28D9', color: '#ffffff' },
+    yellow: { backgroundColor: '#CA8A04', color: '#ffffff' },
   };
   const baseProductCellStyle = { position: 'relative', flex: 1, minWidth: 0 };
   const emptyProductCellStyle = { backgroundColor: 'rgba(44,62,80,0.2)' };

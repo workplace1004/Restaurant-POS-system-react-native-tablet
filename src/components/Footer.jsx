@@ -112,7 +112,7 @@ export function Footer({
     if (id === 'subtotaal') onSubtotalClick?.();
   };
 
-  const functionButtonBaseClass = 'bg-[#4ab3ff] text-pos-text active:bg-[#4ab3ff]/45';
+  const functionButtonBaseClass = 'bg-[#1D4ED8] text-white active:bg-[#1D4ED8]/80';
   const moreModalWidth = Math.max(320, Math.min(1400, Math.floor((windowWidth || 1024) * 0.9)));
   const moreModalMaxHeight = Math.max(220, Math.floor((windowHeight || 700) * 0.72));
 

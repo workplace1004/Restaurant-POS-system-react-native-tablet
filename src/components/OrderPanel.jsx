@@ -16,9 +16,10 @@ const formatSubtotalPrice = (n) => `\u20AC ${Number(n).toFixed(2).replace('.', '
 const roundCurrency = (n) => Math.round((Number(n) || 0) * 100) / 100;
 const formatPaymentAmount = (n) => `\u20AC${roundCurrency(n).toFixed(2)}`;
 const TABLE_SAVED_ORDERS_API = '/api/settings/table-saved-orders';
+const CARD_IMAGE = require('../../assets/image/card.png');
 const CASH_IMAGE = require('../../assets/image/cash.png');
+const CASHMATIC_IMAGE = require('../../assets/image/cashmatic.png');
 const PAYWORLD_IMAGE = require('../../assets/image/payworld.png');
-const CARD_IMAGE = require('../../assets/image/card.svg');
 
 /** RN defaults flexDirection to column — flex-row keeps label + price on one line */
 const ticketLineRow = 'flex flex-row w-full items-center justify-between';
@@ -1237,7 +1238,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
           disabled={!hasSelection || isSavedTableOrder}
           accessibilityLabel={t('remove')}
         >
-          <MaterialCommunityIcons name="delete-outline" size={20} color="#ffffff" />
+          <MaterialCommunityIcons name="delete-outline" size={20} color="#B91C1C" />
         </Pressable>
         <Pressable
           disabled={isSavedTableOrder}
@@ -1246,7 +1247,7 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
           onPress={() => setShowDeleteAllModal(true)}
           accessibilityLabel={t('clear')}
         >
-          <MaterialCommunityIcons name="delete-sweep" size={20} color="#ffffff" />
+          <MaterialCommunityIcons name="delete-sweep" size={20} color="#CA8A04" />
         </Pressable>
       </View>
 
@@ -1363,8 +1364,8 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
             <Pressable
               disabled={payableTotalForPaymentModal <= 0.009 && !(isViewedFromInWaiting && hasOrderItems) && !(hasOrderItems && order?.id)}
               className={`min-w-0 flex-1 items-center justify-center rounded-md border-none px-0.5 py-1.5 ${payableTotalForPaymentModal <= 0.009 && !(isViewedFromInWaiting && hasOrderItems) && !(hasOrderItems && order?.id)
-                ? 'bg-green-600/50 text-gray-400 cursor-not-allowed opacity-70'
-                : 'bg-green-600 text-white'
+                ? 'bg-[#1F8E41]/50 text-gray-200 cursor-not-allowed opacity-70'
+                : 'bg-[#1F8E41] text-white active:opacity-90'
                 }`}
               onPress={() => openPayDifferentlyModal()}
             >
@@ -1373,9 +1374,9 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
               </Text>
             </Pressable>
             <Pressable
-              className="shrink-0 items-center justify-center rounded-md border-none bg-[#f0961c]/90 px-3 py-2"
+              className="shrink-0 items-center justify-center rounded-md border-none bg-[#B45309] px-3 py-2 active:opacity-90"
             >
-              <Text className={`text-center ${compactBtnText} font-semibold text-pos-bg`}>€</Text>
+              <Text className={`text-center ${compactBtnText} font-semibold text-white`}>€</Text>
             </Pressable>
           </View>
         </View>
@@ -1445,11 +1446,9 @@ export function OrderPanel({ order, orders, onRemoveItem, onUpdateItemQuantity, 
                               accessibilityLabel={m.name}
                             >
                               {integ === 'manual_cash' ? (
-                              <View className="w-[105px] h-[70px] items-center justify-center bg-amber-50/80 rounded">
-                                <Text className="text-4xl font-bold text-amber-600">€</Text>
-                              </View>
-                            ) : integ === 'cashmatic' ? (
                               <ExpoImage source={CASH_IMAGE} style={{ width: 105, height: 70 }} contentFit="contain" />
+                            ) : integ === 'cashmatic' ? (
+                              <ExpoImage source={CASHMATIC_IMAGE} style={{ width: 105, height: 70 }} contentFit="contain" />
                             ) : integ === 'payworld' ? (
                               <ExpoImage source={PAYWORLD_IMAGE} style={{ width: 105, height: 70 }} contentFit="contain" />
                             ) : integ === 'generic' ? (
