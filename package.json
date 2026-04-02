@@ -4,16 +4,19 @@
   "main": "index.js",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "build:apk:release": "cd android && gradlew.bat assembleRelease"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.6.0",
     "babel-preset-expo": "~55.0.8",
     "expo": "~55.0.8",
+    "expo-build-properties": "~55.0.10",
     "expo-image": "^55.0.6",
+    "expo-splash-screen": "~55.0.13",
     "expo-status-bar": "~55.0.4",
     "nativewind": "^4.2.3",
     "react": "19.2.0",

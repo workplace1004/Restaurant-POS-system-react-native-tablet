@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Modal, TextInput } from 'react-native';
+import { View, Text, Pressable, ScrollView, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiContext';
@@ -7,6 +7,7 @@ import { useApi } from '../contexts/ApiContext';
 const LOGO_IMAGE = require('../../assets/image/logo.png');
 
 const TOAST_DURATION_MS = 3500;
+const CONFIG_ERROR_TOAST_MS = 4500;
 const AUTO_LOGIN_MIN_PIN_LENGTH = 4;
 
 function parseOriginToIpPort(origin) {
@@ -33,7 +34,7 @@ export function LoginScreen({ time, onLogin }) {
   const [screen, setScreen] = useState('login');
   const [configIp, setConfigIp] = useState('');
   const [configPort, setConfigPort] = useState('');
-  const [configErr, setConfigErr] = useState('');
+  const [configErrorToast, setConfigErrorToast] = useState(null);
   const [configSaving, setConfigSaving] = useState(false);
   const [userSearchQuery, setUserSearchQuery] = useState('');
 
@@ -49,7 +50,9 @@ export function LoginScreen({ time, onLogin }) {
     if (screen === 'config') {
       setConfigIp(defaultIpPort.ip);
       setConfigPort(defaultIpPort.port);
-      setConfigErr('');
+      setConfigErrorToast(null);
+    } else {
+      setConfigErrorToast(null);
     }
   }, [screen, defaultIpPort.ip, defaultIpPort.port]);
 
@@ -81,6 +84,12 @@ export function LoginScreen({ time, onLogin }) {
   useEffect(() => {
     if (!showUserModal) setUserSearchQuery('');
   }, [showUserModal]);
+
+  useEffect(() => {
+    if (!configErrorToast) return undefined;
+    const id = setTimeout(() => setConfigErrorToast(null), CONFIG_ERROR_TOAST_MS);
+    return () => clearTimeout(id);
+  }, [configErrorToast]);
 
   const handleSubmit = useCallback(async ({ silent = false } = {}) => {
     if (loginInFlight) return;
@@ -129,10 +138,10 @@ export function LoginScreen({ time, onLogin }) {
     const ip = String(configIp || '').trim();
     const port = String(configPort || '').trim().replace(/^\//, '');
     if (!ip || !port) {
-      setConfigErr(t('loginConfigIpPortRequired'));
+      setConfigErrorToast(t('loginConfigIpPortRequired'));
       return;
     }
-    setConfigErr('');
+    setConfigErrorToast(null);
     setConfigSaving(true);
     try {
       const base = `http://${ip}:${port}`;
@@ -141,9 +150,14 @@ export function LoginScreen({ time, onLogin }) {
       const ping = await fetch(`${apiUrl}/categories`);
       if (!ping.ok) throw new Error(`HTTP ${ping.status}`);
       await setApiBase(test);
+      setConfigErrorToast(null);
       setScreen('login');
     } catch (e) {
-      setConfigErr(e?.message || t('loginConfigConnectFailed'));
+      const raw = String(e?.message || '');
+      const looksNetwork =
+        /network request failed|failed to fetch|network error|aborted|timeout/i.test(raw) || !raw;
+      const message = looksNetwork ? t('loginConfigConnectFailed') : raw || t('loginConfigConnectFailed');
+      setConfigErrorToast(message);
     } finally {
       setConfigSaving(false);
     }
@@ -152,6 +166,20 @@ export function LoginScreen({ time, onLogin }) {
   if (screen === 'config') {
     return (
       <View className="flex-1 flex-col bg-pos-bg">
+        {configErrorToast ? (
+          <View
+            className="absolute left-0 right-0 items-center px-4"
+            style={{ top: 52, zIndex: 100 }}
+            pointerEvents="box-none"
+          >
+            <Pressable
+              onPress={() => setConfigErrorToast(null)}
+              className="bg-rose-500 rounded-xl px-5 py-3 max-w-lg shadow-lg"
+            >
+              <Text className="text-white text-center text-base font-medium">{configErrorToast}</Text>
+            </Pressable>
+          </View>
+        ) : null}
         <View className="flex-row items-center justify-between px-6 py-5 border-b border-pos-border">
           <Pressable
             className="px-3 py-2 rounded-lg bg-pos-panel border border-pos-border"
@@ -185,13 +213,19 @@ export function LoginScreen({ time, onLogin }) {
             placeholderTextColor="#7f8c8d"
             className="bg-pos-panel border border-pos-border rounded-lg px-4 py-3 text-pos-text text-lg mb-4"
           />
-          {configErr ? <Text className="text-red-400 mb-4">{configErr}</Text> : null}
           <Pressable
-            className={`py-4 rounded-lg ${configSaving ? 'bg-green-600/50' : 'bg-green-600'}`}
+            className={`py-4 rounded-lg ${configSaving ? 'bg-green-600/70' : 'bg-green-600'}`}
             onPress={handleSaveServerConfig}
             disabled={configSaving}
           >
-            <Text className="text-white text-center text-xl font-semibold">{t('loginConnect')}</Text>
+            {configSaving ? (
+              <View className="flex-row items-center justify-center gap-3">
+                <ActivityIndicator color="#ffffff" />
+                <Text className="text-white text-xl font-semibold">{t('loginConfigConnecting')}</Text>
+              </View>
+            ) : (
+              <Text className="text-white text-center text-xl font-semibold">{t('loginConnect')}</Text>
+            )}
           </Pressable>
         </ScrollView>
       </View>
